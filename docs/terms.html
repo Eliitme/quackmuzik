@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Terms of Service - QuackMuzik Bot">
+  <title>Điều khoản dịch vụ - QuackMuzik</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main>
+    <div class="content-card">
+      <h1 data-i18n="terms.title">Terms of Service - QuackMuzik Bot</h1>
+      <p><strong data-i18n="terms.lastUpdated">Last Updated:</strong> January 10, 2026</p>
+
+      <h2>1. Acceptance of Terms</h2>
+      <p>By inviting, using, or interacting with QuackMuzik Bot ("the Bot", "we", "us", "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not use the Bot.</p>
+
+      <h2>2. Description of Service</h2>
+      <p>QuackMuzik is a Discord music bot that provides the following services:</p>
+      <ul>
+        <li><strong>Music Playback:</strong> Stream music from various platforms including YouTube, Spotify, Apple Music, SoundCloud, Deezer, Yandex Music, Bandcamp, Twitch, Vimeo, and HTTP streams</li>
+        <li><strong>Text-to-Speech:</strong> Convert text to speech using FloweryTTS integration</li>
+        <li><strong>Queue Management:</strong> Manage music queues with play, skip, jump, seek, and queue display features</li>
+        <li><strong>Playlist Management:</strong> Create, manage, and play user-created playlists (per-guild or global, public or private)</li>
+        <li><strong>Play History:</strong> Track and store play history for each server</li>
+        <li><strong>Server Configuration:</strong> Customize bot prefix and language settings (Vietnamese/English) per Discord server</li>
+        <li><strong>Internationalization:</strong> Support for multiple languages (Vietnamese and English)</li>
+      </ul>
+
+      <h2>3. User Responsibilities</h2>
+
+      <h3>3.1 Proper Use</h3>
+      <p>You agree to use the Bot only for lawful purposes and in accordance with these Terms. You agree not to:</p>
+      <ul>
+        <li>Use the Bot to stream copyrighted content without proper authorization</li>
+        <li>Use the Bot in violation of any applicable laws or regulations</li>
+        <li>Attempt to reverse engineer, decompile, or disassemble the Bot</li>
+        <li>Use automated systems or bots to interact with the Bot</li>
+        <li>Abuse, spam, or overload the Bot's commands</li>
+        <li>Use the Bot to harass, threaten, or harm others</li>
+        <li>Violate Discord's Terms of Service or Community Guidelines</li>
+      </ul>
+
+      <h3>3.2 Required Permissions</h3>
+      <p>To use the Bot, you must grant the following permissions in your Discord server:</p>
+      <ul>
+        <li><strong>Connect</strong> - Join voice channels</li>
+        <li><strong>Speak</strong> - Play audio in voice channels</li>
+        <li><strong>Send Messages</strong> - Send command responses</li>
+        <li><strong>Embed Links</strong> - Display rich embeds</li>
+        <li><strong>Read Message History</strong> - Read commands in channels</li>
+      </ul>
+
+      <h3>3.3 Server Administrator Responsibilities</h3>
+      <p>Server administrators are responsible for:</p>
+      <ul>
+        <li>Ensuring compliance with these Terms by all server members</li>
+        <li>Properly configuring bot permissions</li>
+        <li>Monitoring bot usage within their servers</li>
+        <li>Removing the Bot if it violates their server rules</li>
+      </ul>
+
+      <h2>4. Data Collection and Privacy</h2>
+
+      <h3>4.1 Data We Collect</h3>
+      <p>The Bot collects and stores the following data in a PostgreSQL database:</p>
+      <ul>
+        <li><strong>Guild (Server) Data:</strong>
+          <ul>
+            <li>Guild ID</li>
+            <li>Custom prefix (stored in <code>guild_prefixes</code> table)</li>
+            <li>Language preference/locale (stored in <code>guild_settings</code> table, supports 'vi' for Vietnamese and 'en' for English)</li>
+          </ul>
+        </li>
+        <li><strong>User Data:</strong>
+          <ul>
+            <li>User IDs associated with command usage</li>
+            <li>User IDs of playlist creators and track requesters</li>
+          </ul>
+        </li>
+        <li><strong>Play History:</strong>
+          <ul>
+            <li>Track titles, authors, URIs, identifiers, durations, source names</li>
+            <li>Requester IDs</li>
+            <li>Timestamps of when tracks were played</li>
+            <li>Stored in <code>play_history</code> table per guild</li>
+          </ul>
+        </li>
+        <li><strong>User Playlists:</strong>
+          <ul>
+            <li>Playlist names, descriptions, visibility settings (public/private)</li>
+            <li>Guild association (playlists can be per-guild or global)</li>
+            <li>Creation and update timestamps</li>
+            <li>Stored in <code>user_playlists</code> table</li>
+          </ul>
+        </li>
+        <li><strong>Playlist Tracks:</strong>
+          <ul>
+            <li>Track URIs, identifiers, titles, authors, durations, source names</li>
+            <li>Track positions within playlists</li>
+            <li>User IDs of users who added tracks</li>
+            <li>Addition timestamps</li>
+            <li>Stored in <code>playlist_tracks</code> table</li>
+          </ul>
+        </li>
+        <li><strong>Command Logs:</strong>
+          <ul>
+            <li>Command execution data including user ID, guild ID, channel ID, and timestamps</li>
+            <li>Structured JSON logs for debugging and monitoring</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>4.2 Data Usage</h3>
+      <p>We use collected data to:</p>
+      <ul>
+        <li>Provide and improve Bot functionality</li>
+        <li>Maintain server-specific settings (prefix, locale)</li>
+        <li>Store and manage user playlists</li>
+        <li>Track play history for queue management and statistics</li>
+        <li>Enable playlist sharing (for public playlists)</li>
+        <li>Debug and troubleshoot issues</li>
+        <li>Generate usage statistics (anonymized)</li>
+        <li>Enforce cooldowns and rate limiting</li>
+      </ul>
+
+      <h3>4.3 Data Storage</h3>
+      <ul>
+        <li>Data is stored in a PostgreSQL database</li>
+        <li>Play history and logs may be retained for operational purposes</li>
+        <li>You may request deletion of your server's data by removing the Bot from your server</li>
+      </ul>
+
+      <h3>4.4 Third-Party Services</h3>
+      <p>The Bot integrates with third-party services:</p>
+      <ul>
+        <li><strong>Discord:</strong> User and server data via Discord API</li>
+        <li><strong>Lavalink:</strong> Audio streaming services</li>
+        <li><strong>Music Platforms:</strong> YouTube, Spotify, Apple Music, SoundCloud, Deezer, etc.</li>
+        <li><strong>FloweryTTS:</strong> Text-to-speech services</li>
+      </ul>
+      <p>Your use of these services is subject to their respective terms and privacy policies.</p>
+
+      <h2>5. Intellectual Property</h2>
+
+      <h3>5.1 Bot Code</h3>
+      <p>The Bot's source code, design, and functionality are the property of the Bot's developers. The Bot is provided under a non-commercial license (see LICENSE file).</p>
+
+      <h3>5.2 Music Content</h3>
+      <p>The Bot streams music content from third-party platforms. We do not claim ownership of any music content. All music content remains the property of its respective copyright holders.</p>
+
+      <h3>5.3 User Content</h3>
+      <p>You retain ownership of any playlists or custom content you create using the Bot. By using the Bot, you grant us a license to store and process this content as necessary to provide the service. This includes:</p>
+      <ul>
+        <li>Playlists you create (including names, descriptions, and track lists)</li>
+        <li>Play history data associated with your server</li>
+        <li>Server configuration settings (prefix, locale)</li>
+      </ul>
+      <p>You can delete your playlists at any time using the Bot's playlist management commands. Removing the Bot from your server may result in deletion of associated data.</p>
+
+      <h2>6. Copyright and DMCA</h2>
+
+      <h3>6.1 Copyright Compliance</h3>
+      <p>The Bot is a tool that streams content from various platforms. We do not host, store, or distribute copyrighted content. The Bot acts as a client to access publicly available streams.</p>
+
+      <h3>6.2 DMCA Notices</h3>
+      <p>If you believe your copyrighted content is being used inappropriately through the Bot, please contact the respective music platform directly. The Bot does not store or cache music files.</p>
+
+      <h3>6.3 Fair Use</h3>
+      <p>Users are responsible for ensuring their use of the Bot complies with copyright laws and fair use provisions in their jurisdiction.</p>
+
+      <h2>7. Service Availability</h2>
+
+      <h3>7.1 No Guarantee of Uptime</h3>
+      <p>We do not guarantee that the Bot will be available at all times. The Bot may be unavailable due to:</p>
+      <ul>
+        <li>Maintenance or updates</li>
+        <li>Technical issues or bugs</li>
+        <li>Third-party service outages</li>
+        <li>Discord API issues</li>
+        <li>Network problems</li>
+      </ul>
+
+      <h3>7.2 Service Modifications</h3>
+      <p>We reserve the right to:</p>
+      <ul>
+        <li>Modify, suspend, or discontinue any part of the Bot at any time</li>
+        <li>Add, remove, or change features</li>
+        <li>Update these Terms at any time</li>
+        <li>Restrict access to the Bot for users who violate these Terms</li>
+      </ul>
+
+      <h2>8. Limitation of Liability</h2>
+
+      <h3>8.1 No Warranty</h3>
+      <p><strong>THE BOT IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.</strong></p>
+
+      <h3>8.2 Limitation of Damages</h3>
+      <p><strong>TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES RESULTING FROM YOUR USE OF THE BOT.</strong></p>
+
+      <h3>8.3 Maximum Liability</h3>
+      <p><strong>OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID TO USE THE BOT (WHICH IS CURRENTLY ZERO, AS THE BOT IS FREE TO USE).</strong></p>
+
+      <h2>9. Indemnification</h2>
+      <p>You agree to indemnify, defend, and hold harmless the Bot's developers, operators, and affiliates from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from:</p>
+      <ul>
+        <li>Your use of the Bot</li>
+        <li>Your violation of these Terms</li>
+        <li>Your violation of any third-party rights</li>
+        <li>Your violation of any applicable laws or regulations</li>
+      </ul>
+
+      <h2>10. Termination</h2>
+
+      <h3>10.1 By You</h3>
+      <p>You may stop using the Bot at any time by:</p>
+      <ul>
+        <li>Removing the Bot from your Discord server</li>
+        <li>Ceasing to use Bot commands</li>
+      </ul>
+
+      <h3>10.2 By Us</h3>
+      <p>We reserve the right to terminate or suspend your access to the Bot at any time, with or without notice, for any reason, including:</p>
+      <ul>
+        <li>Violation of these Terms</li>
+        <li>Abuse or misuse of the Bot</li>
+        <li>Legal or regulatory requirements</li>
+        <li>Security concerns</li>
+      </ul>
+
+      <h2>11. Changes to Terms</h2>
+      <p>We may update these Terms from time to time. We will notify users of material changes by:</p>
+      <ul>
+        <li>Updating the "Last Updated" date at the top of this document</li>
+        <li>Posting a notice in our support server (if applicable)</li>
+        <li>Including a notice in Bot responses (for major changes)</li>
+      </ul>
+      <p>Your continued use of the Bot after changes become effective constitutes acceptance of the updated Terms.</p>
+
+      <h2>12. Governing Law</h2>
+      <p>These Terms shall be governed by and construed in accordance with the laws of the jurisdiction where the Bot is operated, without regard to its conflict of law provisions.</p>
+
+      <h2>13. Severability</h2>
+      <p>If any provision of these Terms is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary, and the remaining provisions shall remain in full force and effect.</p>
+
+      <h2>14. Entire Agreement</h2>
+      <p>These Terms constitute the entire agreement between you and us regarding the use of the Bot and supersede all prior agreements and understandings.</p>
+
+      <h2>15. Contact Information</h2>
+      <p>For questions, concerns, or legal notices regarding these Terms, please contact us through:</p>
+      <ul>
+        <li>GitHub Issues: [Your Repository URL]</li>
+        <li>Discord Support Server: [If applicable]</li>
+      </ul>
+
+      <h2>16. Acknowledgment</h2>
+      <p><strong>BY USING THE BOT, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THESE TERMS OF SERVICE.</strong></p>
+
+      <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
+
+      <p><strong>Note:</strong> This is a non-commercial, open-source project. The Bot is provided for educational and personal use only. Commercial use is prohibited under the license terms.</p>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="js/layout.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+

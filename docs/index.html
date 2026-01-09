@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="QuackMuzik - Discord music bot với hỗ trợ đa nền tảng, text-to-speech, và nhiều tính năng mạnh mẽ">
+  <title>QuackMuzik 🦆🎵 - Discord Music Bot</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main>
+    <div class="content-card">
+      <h1 data-i18n="home.title">QuackMuzik 🦆🎵</h1>
+      <p style="font-size: 1.2rem; color: var(--text-light); margin-bottom: 2rem;" data-i18n="home.subtitle">
+        Discord music bot được xây dựng với Lavalink, hỗ trợ nhiều nền tảng nhạc (YouTube, Spotify, Apple Music, SoundCloud, Deezer và nhiều hơn nữa) với khả năng text-to-speech.
+      </p>
+
+      <h2 data-i18n="home.features">✨ Tính năng nổi bật</h2>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3 data-i18n="features.multiPlatform.title">🎵 Hỗ trợ đa nền tảng</h3>
+          <ul id="feature-multiplatform">
+            <li>YouTube / YouTube Music</li>
+            <li>Spotify</li>
+            <li>Apple Music</li>
+            <li>SoundCloud</li>
+            <li>Deezer, Yandex Music</li>
+            <li>Bandcamp, Twitch, Vimeo</li>
+            <li>HTTP streams</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h3 data-i18n="features.tts.title">🎤 Text-to-Speech</h3>
+          <ul id="feature-tts">
+            <li>Tích hợp FloweryTTS</li>
+            <li>Cấu hình giọng nói, tốc độ</li>
+            <li>Hỗ trợ dịch thuật</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h3 data-i18n="features.controls.title">🎛️ Điều khiển nhạc</h3>
+          <ul id="feature-controls">
+            <li>Quản lý queue</li>
+            <li>Play, skip, jump, seek</li>
+            <li>Hiển thị now playing</li>
+            <li>Quản lý playlist</li>
+            <li>Theo dõi lịch sử phát</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h3 data-i18n="features.i18n.title">🌐 Đa ngôn ngữ</h3>
+          <ul id="feature-i18n">
+            <li>Hỗ trợ tiếng Việt & tiếng Anh</li>
+            <li>Cấu hình ngôn ngữ theo server</li>
+            <li>Thông báo được dịch</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h3 data-i18n="features.customization.title">⚙️ Tùy chỉnh</h3>
+          <ul id="feature-customization">
+            <li>Prefix tùy chỉnh</li>
+            <li>Cấu hình ngôn ngữ</li>
+            <li>Phân quyền lệnh</li>
+            <li>Hệ thống cooldown</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h3 data-i18n="features.logging.title">📊 Logging & Monitoring</h3>
+          <ul id="feature-logging">
+            <li>Structured JSON logs</li>
+            <li>Theo dõi lệnh</li>
+            <li>Lavalink event logging</li>
+            <li>Debug mode</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 data-i18n="home.quickStart">🚀 Bắt đầu nhanh</h2>
+      <p data-i18n="home.quickStartDesc">QuackMuzik được thiết kế để dễ dàng triển khai và sử dụng:</p>
+      <ul>
+        <li><strong>Docker Compose:</strong> <span data-i18n="home.quickStartItem1">Chạy bot, Lavalink và database chỉ với một lệnh</span></li>
+        <li><strong>Kubernetes:</strong> <span data-i18n="home.quickStartItem2">Helm charts sẵn có cho production deployment</span></li>
+        <li><strong>CI/CD:</strong> <span data-i18n="home.quickStartItem3">GitHub Actions tự động build và deploy</span></li>
+      </ul>
+
+      <h2 data-i18n="home.documentation">📖 Tài liệu</h2>
+      <ul>
+        <li><a href="guide.html">📘 <span data-i18n="nav.guide">Hướng dẫn</span></a> - <span data-i18n="home.docGuide">Hướng dẫn chi tiết về cách sử dụng bot, các lệnh, và cấu hình</span></li>
+        <li><a href="terms.html">📋 <span data-i18n="nav.terms">Điều khoản</span></a> - <span data-i18n="home.docTerms">Terms of Service và các quy định sử dụng</span></li>
+        <li><a href="disclaimer.html">⚠️ <span data-i18n="nav.disclaimer">Tuyên bố</span></a> - <span data-i18n="home.docDisclaimer">Disclaimer và các thông tin quan trọng</span></li>
+        <li><a href="license.html">📄 <span data-i18n="nav.license">Giấy phép</span></a> - <span data-i18n="home.docLicense">Non-commercial license và điều khoản sử dụng</span></li>
+      </ul>
+
+      <h2 data-i18n="home.links">🔗 Liên kết hữu ích</h2>
+      <ul>
+        <li><a href="https://github.com/eliitme/QuackMuzik" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+        <li><a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer">Discord Developer Portal</a></li>
+        <li><a href="https://github.com/lavalink-devs/Lavalink" target="_blank" rel="noopener noreferrer">Lavalink</a></li>
+      </ul>
+
+      <h2 data-i18n="home.important">⚠️ Lưu ý quan trọng</h2>
+      <blockquote>
+        <p data-i18n="home.importantNote1"><strong>Giấy phép Non-Commercial:</strong> Bot này được cung cấp miễn phí cho mục đích cá nhân và giáo dục. Sử dụng thương mại bị cấm mà không có sự cho phép rõ ràng.</p>
+        <p><strong><span data-i18n="home.importantNote2">Bằng cách sử dụng bot này, bạn đồng ý với</span> <a href="terms.html" data-i18n="nav.terms">Điều khoản</a> <span data-i18n="home.importantNote2And">và</span> <a href="disclaimer.html" data-i18n="nav.disclaimer">Tuyên bố</a>.</strong></p>
+      </blockquote>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="js/layout.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Update feature lists when language changes
+    function updateFeatureLists() {
+      if (!window.i18n || !window.i18n.t) return;
+
+      const t = window.i18n.t;
+      const features = {
+        multiplatform: t('features.multiPlatform.items'),
+        tts: t('features.tts.items'),
+        controls: t('features.controls.items'),
+        i18n: t('features.i18n.items'),
+        customization: t('features.customization.items'),
+        logging: t('features.logging.items')
+      };
+
+      Object.keys(features).forEach(key => {
+        const list = document.querySelector(`#feature-${key}`);
+        if (list && Array.isArray(features[key])) {
+          list.innerHTML = features[key].map(item => `<li>${item}</li>`).join('');
+        }
+      });
+    }
+
+    // Wait for i18n to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial update after i18n loads
+      setTimeout(updateFeatureLists, 200);
+
+      // Update on language change
+      window.addEventListener('i18n:changed', updateFeatureLists);
+    });
+  </script>
+</body>
+</html>
+

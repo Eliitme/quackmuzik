@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Hướng dẫn sử dụng QuackMuzik Bot - Cài đặt, cấu hình và các lệnh">
+  <title>Hướng dẫn sử dụng - QuackMuzik</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main>
+    <div class="content-card">
+      <h1 data-i18n="guide.title">📘 Hướng dẫn sử dụng QuackMuzik</h1>
+
+      <h2 data-i18n="guide.quickStart">🚀 Quick Start</h2>
+
+      <h3 data-i18n="guide.prerequisites">Prerequisites</h3>
+      <ul>
+        <li data-i18n="guide.prerequisitesItem1">Docker and Docker Compose</li>
+        <li data-i18n="guide.prerequisitesItem2">Discord Bot Token</li>
+        <li data-i18n="guide.prerequisitesItem3">Discord Bot Client ID</li>
+      </ul>
+
+      <h3 data-i18n="guide.inviteBot">Invite Bot to Your Server</h3>
+      <p><strong data-i18n="guide.requiredPermissions">Required Permissions:</strong></p>
+      <ul>
+        <li>✅ <strong data-i18n="guide.permissionConnectName">Connect</strong> - <span data-i18n="guide.permissionConnectDesc">Join voice channels</span></li>
+        <li>✅ <strong data-i18n="guide.permissionSpeakName">Speak</strong> - <span data-i18n="guide.permissionSpeakDesc">Play audio in voice channels</span></li>
+        <li>✅ <strong data-i18n="guide.permissionSendName">Send Messages</strong> - <span data-i18n="guide.permissionSendDesc">Send command responses</span></li>
+        <li>✅ <strong data-i18n="guide.permissionEmbedName">Embed Links</strong> - <span data-i18n="guide.permissionEmbedDesc">Display rich embeds</span></li>
+        <li>✅ <strong data-i18n="guide.permissionReadName">Read Message History</strong> - <span data-i18n="guide.permissionReadDesc">Read commands in channels</span></li>
+      </ul>
+
+      <p><strong data-i18n="guide.inviteLink">Invite Link:</strong></p>
+      <ol>
+        <li data-i18n="guide.inviteStep1">Go to <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer">Discord Developer Portal</a></li>
+        <li data-i18n="guide.inviteStep2">Select your bot application</li>
+        <li data-i18n="guide.inviteStep3">Go to <strong>OAuth2</strong> → <strong>URL Generator</strong></li>
+        <li data-i18n="guide.inviteStep4">Select scopes: <code>bot</code> and <code>applications.commands</code> (if using slash commands)</li>
+        <li data-i18n="guide.inviteStep5">Select permissions:
+          <ul>
+            <li>Connect (Voice)</li>
+            <li>Speak (Voice)</li>
+            <li>Send Messages</li>
+            <li>Embed Links</li>
+            <li>Read Message History</li>
+          </ul>
+        </li>
+        <li data-i18n="guide.inviteStep6">Copy the generated URL and open it in your browser to invite the bot</li>
+      </ol>
+
+      <p><strong data-i18n="guide.directInvite">Or use this direct invite (replace YOUR_CLIENT_ID with your bot's Client ID):</strong></p>
+      <pre><code>https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=3147776&scope=bot</code></pre>
+
+      <p><strong data-i18n="guide.gatewayIntents">Required Gateway Intents (enable in Discord Developer Portal → Bot → Privileged Gateway Intents):</strong></p>
+      <ul>
+        <li>✅ <strong data-i18n="guide.intentMessageName">MESSAGE CONTENT INTENT</strong> - <span data-i18n="guide.intentMessageDesc">Required to read command messages</span></li>
+        <li>✅ <span data-i18n="guide.intentMembers">Server Members Intent - Optional (not currently used)</span></li>
+        <li>✅ <span data-i18n="guide.intentPresence">Presence Intent - Optional (not currently used)</span></li>
+      </ul>
+
+      <h3 data-i18n="guide.installation">Installation</h3>
+      <ol>
+        <li><strong data-i18n="guide.installStep1">Clone the repository</strong>
+          <pre><code>git clone &lt;your-repo-url&gt;
+cd QuackMuzik</code></pre>
+        </li>
+        <li><strong data-i18n="guide.installStep2">Create <code>.env</code> file</strong>
+          <pre><code>cp .env.example .env</code></pre>
+        </li>
+        <li><strong data-i18n="guide.installStep3">Configure environment variables</strong>
+          <p><strong data-i18n="guide.envRequired">Required:</strong></p>
+          <ul>
+            <li><code>DISCORD_TOKEN</code>: <span data-i18n="guide.envTokenDesc">Your Discord bot token</span></li>
+            <li><code>DISCORD_CLIENT_ID</code>: <span data-i18n="guide.envClientIdDesc">Your Discord bot client ID</span></li>
+          </ul>
+          <p><strong data-i18n="guide.envLavalink">Lavalink Configuration:</strong></p>
+          <ul>
+            <li><code>LAVALINK_SERVER_PASSWORD</code>: <span data-i18n="guide.envLavalinkPasswordDesc">Lavalink server password (default: youshallnotpass)</span></li>
+            <li><code>LAVALINK_HOST</code>: <span data-i18n="guide.envLavalinkHostDesc">Lavalink host (default: lavalink)</span></li>
+            <li><code>LAVALINK_PORT</code>: <span data-i18n="guide.envLavalinkPortDesc">Lavalink port (default: 2333)</span></li>
+          </ul>
+          <p><strong data-i18n="guide.envDatabase">Database Configuration:</strong></p>
+          <ul>
+            <li><code>DB_HOST</code>: <span data-i18n="guide.envDbHostDesc">Database host (default: postgres)</span></li>
+            <li><code>DB_PORT</code>: <span data-i18n="guide.envDbPortDesc">Database port (default: 5432)</span></li>
+            <li><code>DB_NAME</code>: <span data-i18n="guide.envDbNameDesc">Database name (default: quackmuzik)</span></li>
+            <li><code>DB_USER</code>: <span data-i18n="guide.envDbUserDesc">Database user (default: postgres)</span></li>
+            <li><code>DB_PASSWORD</code>: <span data-i18n="guide.envDbPasswordDesc">Database password (default: postgres)</span></li>
+          </ul>
+        </li>
+        <li><strong data-i18n="guide.installStep4">Start the bot</strong>
+          <pre><code>docker-compose up -d</code></pre>
+        </li>
+      </ol>
+      <p data-i18n="guide.installComplete">The bot, Lavalink server, and yt-cipher service will start automatically!</p>
+
+      <h2 data-i18n="guide.commands">📖 Commands</h2>
+      <p><strong data-i18n="guide.prefix">Prefix:</strong> <code>z!</code></p>
+
+      <h3 data-i18n="guide.musicCommands">Music Commands</h3>
+      <ul>
+        <li><strong><code>z!play &lt;link hoặc từ khóa&gt;</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>p</code>)
+          <ul>
+            <li data-i18n="guide.commandPlayDesc">Play music from various platforms or search YouTube</li>
+            <li><span data-i18n="guide.commandPlayExamples">Examples:</span>
+              <pre><code>z!play never gonna give you up
+z!play https://www.youtube.com/watch?v=dQw4w9WgXcQ
+z!play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT</code></pre>
+            </li>
+          </ul>
+        </li>
+        <li><strong><code>z!stop</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>s</code>, <code>leave</code>, <code>disconnect</code>)
+          <ul>
+            <li data-i18n="guide.commandStopDesc">Stop playback and leave voice channel</li>
+          </ul>
+        </li>
+        <li><strong><code>z!skip</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>s</code>, <code>next</code>)
+          <ul>
+            <li data-i18n="guide.commandSkipDesc">Skip current track</li>
+            <li data-i18n="guide.commandSkipDesc2">Automatically ends playback if it's the last track</li>
+          </ul>
+        </li>
+        <li><strong><code>z!queue</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>q</code>, <code>list</code>)
+          <ul>
+            <li data-i18n="guide.commandQueueDesc">Display current queue with pagination</li>
+            <li><span data-i18n="guide.usage">Usage:</span> <code data-i18n="guide.commandQueueUsage">z!queue [page]</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!nowplaying</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>np</code>, <code>current</code>)
+          <ul>
+            <li data-i18n="guide.commandNowplayingDesc">Show currently playing track information</li>
+          </ul>
+        </li>
+        <li><strong><code>z!jump &lt;số thứ tự&gt;</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>j</code>, <code>skipto</code>)
+          <ul>
+            <li data-i18n="guide.commandJumpDesc">Jump to a specific track in the queue</li>
+            <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandJumpExample">z!jump 5</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!seek &lt;thời gian&gt;</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>scrub</code>, <code>position</code>)
+          <ul>
+            <li data-i18n="guide.commandSeekDesc">Seek to a specific time in the current track</li>
+            <li><span data-i18n="guide.formats">Formats:</span> <code data-i18n="guide.commandSeekFormats">1:30, 90, 2:15:30</code></li>
+            <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandSeekExample">z!seek 1:30</code></li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3 data-i18n="guide.ttsTitle">Text-to-Speech</h3>
+      <ul>
+        <li><strong><code>z!speak &lt;nội dung&gt;</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>tts</code>)
+          <ul>
+            <li data-i18n="guide.ttsCommandDesc">Convert text to speech using FloweryTTS</li>
+            <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.ttsExample">z!speak Xin chào mọi người!</code></li>
+            <li data-i18n="guide.ttsNote">Note: Requires FloweryTTS plugin enabled in Lavalink config</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3 data-i18n="guide.playlistTitle">Playlist Management</h3>
+      <ul>
+        <li><strong><code>z!playlist &lt;subcommand&gt; [args]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>pl</code>)
+          <ul>
+            <li data-i18n="guide.playlistCommandDesc">Manage your playlists</li>
+            <li><span data-i18n="guide.playlistSubcommands">Subcommands:</span>
+              <ul>
+                <li><code>create &lt;name&gt; [description]</code> - <span data-i18n="guide.playlistCreate">Create a new playlist</span></li>
+                <li><code>list</code> - <span data-i18n="guide.playlistList">List all your playlists</span></li>
+                <li><code>add &lt;playlist&gt; &lt;track&gt;</code> - <span data-i18n="guide.playlistAdd">Add a track to playlist</span></li>
+                <li><code>remove &lt;playlist&gt; &lt;position&gt;</code> - <span data-i18n="guide.playlistRemove">Remove track from playlist</span></li>
+                <li><code>delete &lt;playlist&gt;</code> - <span data-i18n="guide.playlistDelete">Delete a playlist</span></li>
+                <li><code>show &lt;playlist&gt;</code> - <span data-i18n="guide.playlistShow">Show playlist details</span></li>
+                <li><code>play &lt;playlist&gt;</code> - <span data-i18n="guide.playlistPlay">Play a playlist</span></li>
+              </ul>
+            </li>
+            <li><span data-i18n="guide.playlistExamples">Examples:</span>
+              <pre><code>z!playlist create MyFavorites
+z!playlist add MyFavorites https://www.youtube.com/watch?v=dQw4w9WgXcQ
+z!playlist play MyFavorites</code></pre>
+            </li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3 data-i18n="guide.adminCommands">Admin Commands</h3>
+      <ul>
+        <li><strong><code>z!prefix [prefix mới]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>setprefix</code>)
+          <ul>
+            <li data-i18n="guide.commandPrefixDesc">View or change bot prefix for this server</li>
+            <li data-i18n="guide.commandPrefixRequires">Requires: Manage Server permission</li>
+            <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandPrefixExample">z!prefix !</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!locale [ngôn ngữ]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>language</code>, <code>lang</code>)
+          <ul>
+            <li data-i18n="guide.commandLocaleDesc">View or change bot language (vi/en) for this server</li>
+            <li data-i18n="guide.commandLocaleRequires">Requires: Manage Server permission</li>
+            <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandLocaleExample">z!locale en</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!help [command]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>h</code>, <code>commands</code>)
+          <ul>
+            <li data-i18n="guide.commandHelpDesc">Show all commands or help for a specific command</li>
+            <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandHelpExample">z!help play</code></li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3 data-i18n="guide.systemCommands">System Commands</h3>
+      <ul>
+        <li><strong><code>z!guilds</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>servers</code>, <code>guildinfo</code>)
+          <ul>
+            <li data-i18n="guide.commandGuildsDesc">Show information about servers bot is in</li>
+            <li data-i18n="guide.commandGuildsOwner">Owner-only command</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h2 data-i18n="guide.configuration">⚙️ Configuration</h2>
+
+      <h3 data-i18n="guide.lavalinkConfig">Lavalink Configuration</h3>
+      <p data-i18n="guide.lavalinkConfigDesc">Edit lavalink/application.yml to configure:</p>
+      <ul>
+        <li data-i18n="guide.lavalinkConfigItem1">Music platform sources</li>
+        <li data-i18n="guide.lavalinkConfigItem2">FloweryTTS settings (voice, speed, translate)</li>
+        <li data-i18n="guide.lavalinkConfigItem3">YouTube plugin settings</li>
+        <li data-i18n="guide.lavalinkConfigItem4">Logging levels</li>
+      </ul>
+
+      <h3 data-i18n="guide.floweryTtsSetup">FloweryTTS Setup</h3>
+      <p data-i18n="guide.floweryTtsDesc">To enable TTS, ensure in lavalink/application.yml:</p>
+      <pre><code>plugins:
+  floweryTts:
+    enabled: true
+    voice: '3edfe2d3-45fb-5f89-9689-7b79d77b65d7'
+    translate: false
+    silence: 0
+    speed: 1.0
+    audioFormat: 'mp3'</code></pre>
+
+      <h2 data-i18n="guide.troubleshooting">🐛 Troubleshooting</h2>
+
+      <h3 data-i18n="guide.troubleshootingBotNotResponding">Bot not responding to commands</h3>
+      <ul>
+        <li>✅ <span data-i18n="guide.troubleshootingBotNotRespondingItem1">Check MESSAGE CONTENT INTENT is enabled in Discord Developer Portal → Bot → Privileged Gateway Intents</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingBotNotRespondingItem2">Verify bot has proper permissions in the server</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingBotNotRespondingItem3">Check bot is in the server - Verify bot appears in member list</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingBotNotRespondingItem4">Check prefix - Default prefix is z! (can be changed with z!prefix)</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingBotNotRespondingItem5">Check bot logs: docker-compose logs bot</span></li>
+      </ul>
+
+      <h3 data-i18n="guide.troubleshootingMusicNotPlaying">Music not playing</h3>
+      <ul>
+        <li>✅ <span data-i18n="guide.troubleshootingMusicNotPlayingItem1">Ensure bot has Connect and Speak permissions in voice channel</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingMusicNotPlayingItem2">Check Lavalink is running: docker-compose logs lavalink</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingMusicNotPlayingItem3">Verify port 2333 is not blocked</span></li>
+      </ul>
+
+      <h3 data-i18n="guide.troubleshootingTtsNotWorking">TTS not working</h3>
+      <ul>
+        <li>✅ <span data-i18n="guide.troubleshootingTtsNotWorkingItem1">Verify FloweryTTS plugin is enabled in lavalink/application.yml</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingTtsNotWorkingItem2">Restart Lavalink after config changes: docker-compose restart lavalink</span></li>
+      </ul>
+
+      <h3 data-i18n="guide.troubleshootingYoutubeIssues">YouTube playback issues</h3>
+      <ul>
+        <li>✅ <span data-i18n="guide.troubleshootingYoutubeIssuesItem1">Check yt-cipher service is healthy: docker-compose ps yt-cipher</span></li>
+        <li>✅ <span data-i18n="guide.troubleshootingYoutubeIssuesItem2">Verify yt-cipher endpoint in Lavalink config</span></li>
+      </ul>
+
+      <h2 data-i18n="guide.databaseSchema">📊 Database Schema</h2>
+      <p data-i18n="guide.databaseSchemaDesc">The bot uses PostgreSQL to store the following data:</p>
+      <ul>
+        <li><strong><code>guild_prefixes</code></strong>: <span data-i18n="guide.databaseSchemaItem1">Custom prefixes per server</span></li>
+        <li><strong><code>guild_settings</code></strong>: <span data-i18n="guide.databaseSchemaItem2">Server settings (locale)</span></li>
+        <li><strong><code>play_history</code></strong>: <span data-i18n="guide.databaseSchemaItem3">Track play history</span></li>
+        <li><strong><code>user_playlists</code></strong>: <span data-i18n="guide.databaseSchemaItem4">User-created playlists</span></li>
+        <li><strong><code>playlist_tracks</code></strong>: <span data-i18n="guide.databaseSchemaItem5">Tracks in playlists</span></li>
+      </ul>
+      <p data-i18n="guide.databaseSchemaNote">All tables are automatically created on first run via ensureSchema().</p>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="js/layout.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+
