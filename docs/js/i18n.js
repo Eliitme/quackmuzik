@@ -7,13 +7,18 @@ let translations = {};
 // NOTE: This i18n system is independent from src/locales
 // It only loads from docs/i18n/ folder
 function getBasePath() {
+  // Get the path of the current page
   const path = window.location.pathname;
-  // If we're in a subdirectory (like /docs/), use that as base
-  if (path.includes('/docs/')) {
-    return '/docs/';
-  }
-  // Otherwise assume root (for GitHub Pages)
-  return '/';
+
+  // Remove filename from path (e.g., /QuackMuzik/index.html -> /QuackMuzik/)
+  // or /QuackMuzik/guide.html -> /QuackMuzik/
+  const pathWithoutFile = path.substring(0, path.lastIndexOf('/') + 1);
+
+  // For GitHub Pages:
+  // - If repo name is "QuackMuzik", URL will be /QuackMuzik/
+  // - If it's root domain, URL will be /
+  // Always return path with trailing slash
+  return pathWithoutFile || '/';
 }
 
 // Load translations from docs/i18n/ folder only
@@ -22,9 +27,19 @@ async function loadTranslations(locale) {
   try {
     const basePath = getBasePath();
     // Always load from docs/i18n/ - never from src/locales/
-    const response = await fetch(`${basePath}i18n/${locale}.json`);
+    // Use relative path from current page location
+    const translationPath = `${basePath}i18n/${locale}.json`;
+
+    // Debug logging (remove in production if needed)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('Loading translations from:', translationPath);
+    }
+
+    const response = await fetch(translationPath);
     if (!response.ok) {
-      throw new Error(`Failed to load translations for ${locale}`);
+      throw new Error(
+        `Failed to load translations for ${locale} from ${translationPath} (Status: ${response.status})`
+      );
     }
     translations = await response.json();
     return translations;
@@ -32,6 +47,7 @@ async function loadTranslations(locale) {
     console.error('Error loading translations:', error);
     // Fallback to Vietnamese if English fails
     if (locale === 'en') {
+      console.log('Falling back to Vietnamese translations...');
       return loadTranslations('vi');
     }
     return {};
