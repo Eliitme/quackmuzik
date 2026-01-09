@@ -14,7 +14,12 @@ docs/
 ├── css/
 │   └── style.css      # Stylesheet
 ├── js/
+│   ├── layout.js      # Master layout loader
+│   ├── i18n.js        # i18n system (independent from src/locales)
 │   └── main.js        # JavaScript cho navigation
+├── i18n/               # Translation files (independent from src/locales)
+│   ├── en.json        # English translations
+│   └── vi.json        # Vietnamese translations
 └── README.md           # File này
 ```
 
