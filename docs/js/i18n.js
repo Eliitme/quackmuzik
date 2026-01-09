@@ -4,20 +4,24 @@ let currentLocale = 'vi';
 let translations = {};
 
 // Get base path for translations
+// NOTE: This i18n system is independent from src/locales
+// It only loads from docs/i18n/ folder
 function getBasePath() {
   const path = window.location.pathname;
   // If we're in a subdirectory (like /docs/), use that as base
   if (path.includes('/docs/')) {
     return '/docs/';
   }
-  // Otherwise assume root
+  // Otherwise assume root (for GitHub Pages)
   return '/';
 }
 
-// Load translations
+// Load translations from docs/i18n/ folder only
+// This is completely independent from src/locales/
 async function loadTranslations(locale) {
   try {
     const basePath = getBasePath();
+    // Always load from docs/i18n/ - never from src/locales/
     const response = await fetch(`${basePath}i18n/${locale}.json`);
     if (!response.ok) {
       throw new Error(`Failed to load translations for ${locale}`);
