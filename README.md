@@ -21,10 +21,12 @@ Discord music bot built with Lavalink, supporting multiple music platforms (YouT
 ### 🎛️ Music Controls
 - ✅ Queue management with multiple commands
 - ✅ Play, skip, jump, seek functionality
-- ✅ Now playing and queue display
-- ✅ Automatic player cleanup when queue ends
+- ✅ Now playing and queue display with interactive buttons
+- ✅ Automatic player cleanup when queue ends (configurable 24/7 mode)
 - ✅ User playlist management (create, add, remove, play)
 - ✅ Play history tracking per server
+- ✅ Vote skip system with DJ role bypass
+- ✅ Track announcement when new tracks start
 
 ### 📊 Centralized Logging
 - ✅ Structured JSON logs with timestamps
@@ -42,6 +44,18 @@ Discord music bot built with Lavalink, supporting multiple music platforms (YouT
 - ✅ Language/locale settings per server
 - ✅ Permission-based command access
 - ✅ Cooldown system for rate limiting
+- ✅ DJ role configuration for vote skip bypass
+- ✅ 24/7 mode (bot stays in voice channel when queue is empty)
+- ✅ Track announcement toggle
+- ✅ DJ audio filters configuration (Bassboost, Nightcore, Lo-fi, Vaporwave, 8D Audio, Volume Normalization)
+
+### 🏆 Leaderboards & Gamification
+- ✅ Top DJs leaderboard (most requests)
+- ✅ Top Listeners leaderboard (most listening time)
+- ✅ Top Hits leaderboard (most played tracks)
+- ✅ Personal stats and rankings (`/rank` command)
+- ✅ Period-based rankings (week, month, all time)
+- ✅ Auto-tracking of user activity and statistics
 
 ## 🚀 Quick Start
 
@@ -262,8 +276,10 @@ See `helm/quackmuzik/README.md` for detailed documentation.
   - Stop playback and leave voice channel
 
 - **`z!skip`** (aliases: `s`, `next`)
-  - Skip current track
-  - Automatically ends playback if it's the last track
+  - Skip current track (vote skip system)
+  - Users vote to skip (requires 50% of voice channel members)
+  - DJ role users can skip immediately without voting
+  - Automatically ends playback if it's the last track (unless 24/7 mode is enabled)
 
 - **`z!queue`** (aliases: `q`, `list`)
   - Display current queue with pagination
@@ -271,6 +287,7 @@ See `helm/quackmuzik/README.md` for detailed documentation.
 
 - **`z!nowplaying`** (aliases: `np`, `current`)
   - Show currently playing track information
+  - Interactive buttons: Previous, Pause/Resume, Skip, Loop, Shuffle, Stop
 
 - **`z!jump <số thứ tự>`** (aliases: `j`, `skipto`)
   - Jump to a specific track in the queue
@@ -295,6 +312,29 @@ See `helm/quackmuzik/README.md` for detailed documentation.
     - `list` - List all your playlists
     - `add <playlist> <track>` - Add a track to playlist
     - `remove <playlist> <position>` - Remove track from playlist
+    - `play <playlist>` - Play all tracks from a playlist
+    - `show <playlist>` - Show playlist details
+    - `delete <playlist>` - Delete a playlist
+    - `share <playlist>` - Toggle playlist visibility (public/private)
+
+- **`z!leaderboard [type] [period]`** (aliases: `lb`, `top`, `rankings`)
+  - View server leaderboards
+  - Types:
+    - `dj` or `requesters` - Top DJs (most requests)
+    - `listeners` - Top listeners (most listening time)
+    - `tracks` or `hits` - Top tracks (most played)
+  - Periods: `week`, `month`, `all` (default: all)
+  - Examples:
+    ```
+    z!leaderboard dj
+    z!leaderboard listeners month
+    z!leaderboard tracks week
+    ```
+
+- **`z!rank [user]`** (aliases: `stats`, `myrank`, `profile`)
+  - View personal ranking and statistics
+  - Shows: DJ rank, Listener rank, total votes, playlists, likes
+  - Example: `z!rank` or `z!rank @user`
     - `delete <playlist>` - Delete a playlist
     - `show <playlist>` - Show playlist details
     - `play <playlist>` - Play a playlist
@@ -316,6 +356,51 @@ See `helm/quackmuzik/README.md` for detailed documentation.
   - View or change bot language (vi/en) for this server
   - Requires: Manage Server permission
   - Example: `z!locale en`
+
+- **`z!djrole [role mention or role ID]`** (aliases: `dj`, `setdj`)
+  - View or set DJ role for vote skip bypass
+  - Users with DJ role can skip tracks immediately without voting
+  - Requires: Manage Server permission
+  - Examples:
+    ```
+    z!djrole @DJ Role
+    z!djrole 123456789012345678
+    z!djrole none  # Remove DJ role
+    ```
+
+- **`z!247mode [on|off]`** (aliases: `24/7`, `247`, `stay`)
+  - View or toggle 24/7 mode
+  - When enabled, bot stays in voice channel even when queue is empty
+  - Requires: Manage Server permission
+  - Examples:
+    ```
+    z!247mode      # View current status
+    z!247mode on   # Enable 24/7 mode
+    z!247mode off  # Disable 24/7 mode
+    ```
+
+- **`z!announce [on|off]`** (aliases: `announcetrack`, `trackannounce`)
+  - View or toggle track announcement
+  - When enabled, bot sends a message when new tracks start playing
+  - Requires: Manage Server permission
+  - Examples:
+    ```
+    z!announce     # View current status
+    z!announce on  # Enable announcements
+    z!announce off # Disable announcements
+    ```
+
+- **`z!djconfig [filter] [on|off]`** (aliases: `djfilters`, `djaudio`)
+  - Configure audio filters for DJ role
+  - Available filters: `bassboost`, `nightcore`, `lofi`, `vaporwave`, `volume-normalization`, `8d`
+  - Requires: Manage Server permission
+  - Examples:
+    ```
+    z!djconfig                    # View current settings
+    z!djconfig bassboost on       # Enable bassboost
+    z!djconfig nightcore off      # Disable nightcore
+    z!djconfig 8d on              # Enable 8D audio
+    ```
 
 - **`z!help [command]`** (aliases: `h`, `commands`)
   - Show all commands or help for a specific command
@@ -476,17 +561,24 @@ QuackMuzik/
 │   │   ├── music/                # Music commands
 │   │   │   ├── play.ts           # Play music
 │   │   │   ├── stop.ts           # Stop playback
-│   │   │   ├── skip.ts           # Skip track
+│   │   │   ├── skip.ts           # Skip track (vote skip)
 │   │   │   ├── queue.ts          # Queue management
-│   │   │   ├── nowplaying.ts     # Now playing info
+│   │   │   ├── nowplaying.ts     # Now playing info (with buttons)
 │   │   │   ├── jump.ts           # Jump to track
 │   │   │   ├── seek.ts           # Seek in track
 │   │   │   ├── speak.ts          # Text-to-speech
-│   │   │   └── playlist.ts       # Playlist management
+│   │   │   ├── playlist.ts       # Playlist management
+│   │   │   ├── leaderboard.ts    # Leaderboards
+│   │   │   └── rank.ts           # Personal stats
 │   │   ├── admin/                # Admin commands
 │   │   │   ├── help.ts           # Help command
 │   │   │   ├── prefix.ts         # Prefix configuration
-│   │   │   └── locale.ts         # Language configuration
+│   │   │   ├── locale.ts         # Language configuration
+│   │   │   ├── terms.ts          # Terms of Service
+│   │   │   ├── djrole.ts         # DJ role configuration
+│   │   │   ├── 247mode.ts        # 24/7 mode configuration
+│   │   │   ├── announce.ts       # Track announcement config
+│   │   │   └── djconfig.ts       # DJ audio filters config
 │   │   └── system/               # System commands
 │   │       ├── debug.ts           # Debug command (optional)
 │   │       └── guilds.ts          # Guild information
@@ -495,7 +587,8 @@ QuackMuzik/
 │   │   ├── ready.ts               # Bot ready event
 │   │   ├── messageCreate.ts       # Command handler
 │   │   ├── raw.ts                 # Raw Discord events
-│   │   └── lavalink.ts            # Lavalink events
+│   │   ├── lavalink.ts            # Lavalink events
+│   │   └── interactionCreate.ts   # Button interactions
 │   ├── locales/                   # Translation files
 │   │   ├── vi.json                # Vietnamese translations
 │   │   └── en.json                # English translations
@@ -506,9 +599,11 @@ QuackMuzik/
 │       ├── embed.ts               # Embed creation
 │       ├── formatTime.ts          # Time formatting
 │       ├── cooldown.ts            # Cooldown management
-│       ├── permissions.ts         # Permission utilities
+│       ├── permissions.ts        # Permission utilities
 │       ├── env.ts                 # Environment variables
-│       └── spectrum.ts            # Spectrum analyzer (optional)
+│       ├── spectrum.ts            # Spectrum analyzer (optional)
+│       ├── voteSkip.ts            # Vote skip system
+│       └── audioFilters.ts        # Audio filters for DJ role
 ├── lavalink/                      # Lavalink configuration
 │   ├── application.yml            # Lavalink config
 │   ├── logs/                      # Lavalink logs
@@ -526,7 +621,8 @@ QuackMuzik/
 ├── yt-cipher/                      # yt-cipher service
 │   └── Dockerfile
 ├── docs/                           # Documentation
-│   └── BOT_SETUP.md
+│   ├── BOT_SETUP.md                # Bot setup guide
+│   └── DATABASE_FUNCTIONS.md      # Database functions reference
 ├── docker-compose.yml              # Docker Compose config
 ├── Dockerfile                      # Bot container image
 ├── tsconfig.json                   # TypeScript config
@@ -821,6 +917,13 @@ The bot uses PostgreSQL to store the following data:
 - **`guild_settings`**: Server settings
   - `guild_id` (VARCHAR(20), PRIMARY KEY)
   - `locale` (VARCHAR(5), default: 'vi')
+  - `terms_accepted` (BOOLEAN, default: false)
+  - `terms_accepted_at` (TIMESTAMP)
+  - `terms_accepted_by` (VARCHAR(20))
+  - `dj_role_id` (VARCHAR(20)) - DJ role for vote skip bypass
+  - `mode_24_7` (BOOLEAN, default: false) - 24/7 mode setting
+  - `announce_track` (BOOLEAN, default: true) - Track announcement setting
+  - `dj_audio_settings` (JSONB) - DJ audio filters configuration
   - `updated_at` (TIMESTAMP)
 
 - **`play_history`**: Track play history
@@ -849,7 +952,67 @@ The bot uses PostgreSQL to store the following data:
   - `added_at` (TIMESTAMP)
   - `added_by` (VARCHAR(20))
 
+- **`user_stats`**: User statistics for leaderboards
+  - `id` (SERIAL, PRIMARY KEY)
+  - `user_id` (VARCHAR(20))
+  - `guild_id` (VARCHAR(20), nullable)
+  - `total_requests` (INTEGER, default: 0) - Total tracks requested
+  - `total_listening_minutes` (INTEGER, default: 0) - Total listening time
+  - `total_votes` (INTEGER, default: 0) - Total vote skips
+  - `total_playlists` (INTEGER, default: 0) - Total playlists created
+  - `total_likes` (INTEGER, default: 0) - Total likes given
+  - `last_active_at` (TIMESTAMP)
+  - `created_at`, `updated_at` (TIMESTAMP)
+  - UNIQUE(user_id, guild_id)
+
+- **`track_stats`**: Track statistics
+  - `id` (SERIAL, PRIMARY KEY)
+  - `track_uri` (TEXT)
+  - `track_identifier` (TEXT)
+  - `track_title` (TEXT)
+  - `track_author` (TEXT)
+  - `guild_id` (VARCHAR(20), nullable)
+  - `play_count` (INTEGER, default: 0) - Number of times played
+  - `like_count` (INTEGER, default: 0) - Number of likes
+  - `first_played_at` (TIMESTAMP)
+  - `last_played_at` (TIMESTAMP)
+  - `created_at`, `updated_at` (TIMESTAMP)
+  - UNIQUE(track_uri, guild_id)
+
+- **`listening_sessions`**: User listening sessions
+  - `id` (SERIAL, PRIMARY KEY)
+  - `user_id` (VARCHAR(20))
+  - `guild_id` (VARCHAR(20))
+  - `voice_channel_id` (VARCHAR(20))
+  - `started_at` (TIMESTAMP)
+  - `ended_at` (TIMESTAMP)
+  - `duration_minutes` (INTEGER, default: 0)
+  - `tracks_played` (INTEGER, default: 0)
+
+- **`user_interactions`**: User interactions tracking
+  - `id` (SERIAL, PRIMARY KEY)
+  - `user_id` (VARCHAR(20))
+  - `guild_id` (VARCHAR(20), nullable)
+  - `interaction_type` (VARCHAR(20)) - e.g., 'vote', 'like'
+  - `track_uri` (TEXT)
+  - `created_at` (TIMESTAMP)
+
 All tables are automatically created on first run via `ensureSchema()`.
+
+### Database Functions
+
+For a complete reference of all database functions, see [docs/DATABASE_FUNCTIONS.md](docs/DATABASE_FUNCTIONS.md).
+
+**Key Functions:**
+- **Prefix & Locale**: `getGuildPrefix()`, `setGuildPrefix()`, `getGuildLocale()`, `setGuildLocale()`
+- **DJ Role**: `getGuildDjRole()`, `setGuildDjRole()`, `resetGuildDjRole()`
+- **24/7 Mode**: `getGuild24_7Mode()`, `setGuild24_7Mode()`
+- **Track Announcement**: `getGuildAnnounceTrack()`, `setGuildAnnounceTrack()`
+- **DJ Audio Settings**: `getGuildDjAudioSettings()`, `setGuildDjAudioSettings()`
+- **Play History**: `savePlayHistory()`, `getPlayHistory()`, `cleanupPlayHistory()`
+- **User Playlists**: `createPlaylist()`, `getUserPlaylists()`, `addTrackToPlaylist()`, etc.
+- **Leaderboards**: `getTopRequesters()`, `getTopListeners()`, `getTopTracks()`, `getUserStats()`, `getUserRank()`
+- **Statistics**: `incrementUserRequests()`, `incrementUserVotes()`, `updateUserListeningTime()`, `incrementTrackPlayCount()`
 
 ## 📝 License
 
