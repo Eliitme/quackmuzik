@@ -19,11 +19,29 @@ spec:
         app.kubernetes.io/component: postgres
     spec:
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        fsGroup: 999
+      initContainers:
+      - name: init-postgres-data
+        image: busybox:1.35
+        securityContext:
+          runAsUser: 0
+        command: ['sh', '-c']
+        args:
+        - |
+          chown -R 999:999 /var/lib/postgresql/data || true
+          chmod 700 /var/lib/postgresql/data || true
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
       containers:
       - name: postgres
         securityContext:
-          {{- toYaml .Values.securityContext | nindent 10 }}
+          runAsUser: 999
+          runAsGroup: 999
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
         image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
         imagePullPolicy: {{ .Values.database.image.pullPolicy }}
         ports:
