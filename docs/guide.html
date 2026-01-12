@@ -119,8 +119,10 @@ z!play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT</code></pre>
         </li>
         <li><strong><code>z!skip</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>s</code>, <code>next</code>)
           <ul>
-            <li data-i18n="guide.commandSkipDesc">Skip current track</li>
-            <li data-i18n="guide.commandSkipDesc2">Automatically ends playback if it's the last track</li>
+            <li data-i18n="guide.commandSkipDesc">Skip current track (vote skip system)</li>
+            <li>Users vote to skip (requires 50% of voice channel members)</li>
+            <li>DJ role users can skip immediately without voting</li>
+            <li data-i18n="guide.commandSkipDesc2">Automatically ends playback if it's the last track (unless 24/7 mode is enabled)</li>
           </ul>
         </li>
         <li><strong><code>z!queue</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>q</code>, <code>list</code>)
@@ -132,6 +134,7 @@ z!play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT</code></pre>
         <li><strong><code>z!nowplaying</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>np</code>, <code>current</code>)
           <ul>
             <li data-i18n="guide.commandNowplayingDesc">Show currently playing track information</li>
+            <li>Interactive buttons: Previous, Pause/Resume, Skip, Loop, Shuffle, Stop</li>
           </ul>
         </li>
         <li><strong><code>z!jump &lt;số thứ tự&gt;</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>j</code>, <code>skipto</code>)
@@ -145,6 +148,21 @@ z!play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT</code></pre>
             <li data-i18n="guide.commandSeekDesc">Seek to a specific time in the current track</li>
             <li><span data-i18n="guide.formats">Formats:</span> <code data-i18n="guide.commandSeekFormats">1:30, 90, 2:15:30</code></li>
             <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandSeekExample">z!seek 1:30</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!leaderboard [type] [period]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>lb</code>, <code>top</code>, <code>rankings</code>)
+          <ul>
+            <li>View server leaderboards</li>
+            <li>Types: <code>dj</code> or <code>requesters</code> (Top DJs), <code>listeners</code> (Top listeners), <code>tracks</code> or <code>hits</code> (Top tracks)</li>
+            <li>Periods: <code>week</code>, <code>month</code>, <code>all</code> (default: all)</li>
+            <li><span data-i18n="guide.example">Example:</span> <code>z!leaderboard dj</code> or <code>z!leaderboard listeners month</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!rank [user]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>stats</code>, <code>myrank</code>, <code>profile</code>)
+          <ul>
+            <li>View personal ranking and statistics</li>
+            <li>Shows: DJ rank, Listener rank, total votes, playlists, likes</li>
+            <li><span data-i18n="guide.example">Example:</span> <code>z!rank</code> or <code>z!rank @user</code></li>
           </ul>
         </li>
       </ul>
@@ -205,6 +223,38 @@ z!playlist play MyFavorites</code></pre>
           <ul>
             <li data-i18n="guide.commandHelpDesc">Show all commands or help for a specific command</li>
             <li><span data-i18n="guide.example">Example:</span> <code data-i18n="guide.commandHelpExample">z!help play</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!djrole [role mention or role ID]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>dj</code>, <code>setdj</code>)
+          <ul>
+            <li>View or set DJ role for vote skip bypass</li>
+            <li>Users with DJ role can skip tracks immediately without voting</li>
+            <li data-i18n="guide.commandPrefixRequires">Requires: Manage Server permission</li>
+            <li><span data-i18n="guide.example">Example:</span> <code>z!djrole @DJ Role</code> or <code>z!djrole 123456789012345678</code> or <code>z!djrole none</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!247mode [on|off]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>24/7</code>, <code>247</code>, <code>stay</code>)
+          <ul>
+            <li>View or toggle 24/7 mode</li>
+            <li>When enabled, bot stays in voice channel even when queue is empty</li>
+            <li data-i18n="guide.commandPrefixRequires">Requires: Manage Server permission</li>
+            <li><span data-i18n="guide.example">Example:</span> <code>z!247mode</code> or <code>z!247mode on</code> or <code>z!247mode off</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!announce [on|off]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>announcetrack</code>, <code>trackannounce</code>)
+          <ul>
+            <li>View or toggle track announcement</li>
+            <li>When enabled, bot sends a message when new tracks start playing</li>
+            <li data-i18n="guide.commandPrefixRequires">Requires: Manage Server permission</li>
+            <li><span data-i18n="guide.example">Example:</span> <code>z!announce</code> or <code>z!announce on</code> or <code>z!announce off</code></li>
+          </ul>
+        </li>
+        <li><strong><code>z!djconfig [filter] [on|off]</code></strong> (<span data-i18n="guide.aliases">aliases</span>: <code>djfilters</code>, <code>djaudio</code>)
+          <ul>
+            <li>Configure audio filters for DJ role</li>
+            <li>Available filters: <code>bassboost</code>, <code>nightcore</code>, <code>lofi</code>, <code>vaporwave</code>, <code>volume-normalization</code>, <code>8d</code></li>
+            <li data-i18n="guide.commandPrefixRequires">Requires: Manage Server permission</li>
+            <li><span data-i18n="guide.example">Example:</span> <code>z!djconfig</code> or <code>z!djconfig bassboost on</code> or <code>z!djconfig nightcore off</code></li>
           </ul>
         </li>
       </ul>
@@ -275,10 +325,14 @@ z!playlist play MyFavorites</code></pre>
       <p data-i18n="guide.databaseSchemaDesc">The bot uses PostgreSQL to store the following data:</p>
       <ul>
         <li><strong><code>guild_prefixes</code></strong>: <span data-i18n="guide.databaseSchemaItem1">Custom prefixes per server</span></li>
-        <li><strong><code>guild_settings</code></strong>: <span data-i18n="guide.databaseSchemaItem2">Server settings (locale)</span></li>
+        <li><strong><code>guild_settings</code></strong>: <span data-i18n="guide.databaseSchemaItem2">Server settings (locale, DJ role, 24/7 mode, track announcement, DJ audio filters)</span></li>
         <li><strong><code>play_history</code></strong>: <span data-i18n="guide.databaseSchemaItem3">Track play history</span></li>
         <li><strong><code>user_playlists</code></strong>: <span data-i18n="guide.databaseSchemaItem4">User-created playlists</span></li>
         <li><strong><code>playlist_tracks</code></strong>: <span data-i18n="guide.databaseSchemaItem5">Tracks in playlists</span></li>
+        <li><strong><code>user_stats</code></strong>: User statistics (total requests, votes, listening time, playlists count)</li>
+        <li><strong><code>track_stats</code></strong>: Track statistics (play count, first played date, last played date)</li>
+        <li><strong><code>listening_sessions</code></strong>: Listening session tracking (user, guild, start time, end time)</li>
+        <li><strong><code>user_interactions</code></strong>: User interaction tracking (likes, votes, etc.)</li>
       </ul>
       <p data-i18n="guide.databaseSchemaNote">All tables are automatically created on first run via ensureSchema().</p>
     </div>

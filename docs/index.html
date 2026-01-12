@@ -47,9 +47,10 @@
           <ul id="feature-controls">
             <li>Quản lý queue</li>
             <li>Play, skip, jump, seek</li>
-            <li>Hiển thị now playing</li>
+            <li>Hiển thị now playing với nút tương tác</li>
             <li>Quản lý playlist</li>
             <li>Theo dõi lịch sử phát</li>
+            <li>Vote skip với DJ role bypass</li>
           </ul>
         </div>
 
@@ -69,6 +70,10 @@
             <li>Cấu hình ngôn ngữ</li>
             <li>Phân quyền lệnh</li>
             <li>Hệ thống cooldown</li>
+            <li>DJ role configuration</li>
+            <li>24/7 Mode (bot ở lại voice channel)</li>
+            <li>Track announcement toggle</li>
+            <li>DJ audio filters (Bassboost, Nightcore, Lo-fi, Vaporwave, 8D Audio)</li>
           </ul>
         </div>
 
@@ -79,6 +84,18 @@
             <li>Theo dõi lệnh</li>
             <li>Lavalink event logging</li>
             <li>Debug mode</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h3>🏆 Leaderboards & Gamification</h3>
+          <ul id="feature-leaderboards">
+            <li>Top DJs (most requests)</li>
+            <li>Top Listeners (most listening time)</li>
+            <li>Top Hits (most played tracks)</li>
+            <li>Personal stats và rankings</li>
+            <li>Period-based rankings (week, month, all time)</li>
+            <li>Auto-tracking user activity</li>
           </ul>
         </div>
       </div>
@@ -133,6 +150,15 @@
         customization: t('features.customization.items'),
         logging: t('features.logging.items')
       };
+
+      // Leaderboards feature is hardcoded (not in i18n yet)
+      const leaderboardsList = document.querySelector('#feature-leaderboards');
+      if (leaderboardsList && window.i18n) {
+        const isVi = window.i18n.locale === 'vi';
+        leaderboardsList.innerHTML = isVi
+          ? '<li>Top DJs (nhiều yêu cầu nhất)</li><li>Top Listeners (thời gian nghe nhiều nhất)</li><li>Top Hits (bài hát được phát nhiều nhất)</li><li>Thống kê cá nhân và xếp hạng</li><li>Xếp hạng theo kỳ (tuần, tháng, tất cả)</li><li>Tự động theo dõi hoạt động người dùng</li>'
+          : '<li>Top DJs (most requests)</li><li>Top Listeners (most listening time)</li><li>Top Hits (most played tracks)</li><li>Personal stats and rankings</li><li>Period-based rankings (week, month, all time)</li><li>Auto-tracking user activity</li>';
+      }
 
       Object.keys(features).forEach(key => {
         const list = document.querySelector(`#feature-${key}`);
