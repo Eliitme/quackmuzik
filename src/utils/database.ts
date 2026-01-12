@@ -1774,6 +1774,11 @@ export async function createListeningSession(
 
 /**
  * End listening session and update stats
+ * Uses existing duration_minutes from session (already updated by updateListeningSessionWithTrack)
+ * Only calculates from started_at if duration_minutes is 0 (session was never updated with tracks)
+ *
+ * IMPORTANT: updateListeningSessionWithTrack only updates duration_minutes in session, NOT user stats.
+ * This function is responsible for updating user stats with the accumulated duration_minutes.
  */
 export async function endListeningSession(
   sessionId: number,
@@ -1782,10 +1787,36 @@ export async function endListeningSession(
   const db = initDatabase();
 
   try {
+    // Get current session data to check existing duration_minutes
+    const currentSession = await db.query(
+      `SELECT user_id, guild_id, duration_minutes, started_at
+       FROM listening_sessions
+       WHERE id = $1`,
+      [sessionId]
+    );
+
+    if (currentSession.rows.length === 0) {
+      logger.warn('Session not found when ending', { sessionId });
+      return;
+    }
+
+    const {
+      user_id,
+      guild_id,
+      duration_minutes: currentDuration,
+      started_at,
+    } = currentSession.rows[0];
+
+    // Update session with ended_at and tracks_played
+    // If duration_minutes is 0 or null, calculate from started_at (user joined but no tracks played)
+    // Otherwise, use existing duration_minutes (already accumulated from tracks via updateListeningSessionWithTrack)
     const result = await db.query(
       `UPDATE listening_sessions
        SET ended_at = CURRENT_TIMESTAMP,
-           duration_minutes = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - started_at)) / 60,
+           duration_minutes = CASE
+             WHEN COALESCE(duration_minutes, 0) > 0 THEN duration_minutes
+             ELSE EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - started_at)) / 60
+           END,
            tracks_played = $2
        WHERE id = $1
        RETURNING user_id, guild_id, duration_minutes`,
@@ -1793,9 +1824,17 @@ export async function endListeningSession(
     );
 
     if (result.rows.length > 0) {
-      const { user_id, guild_id, duration_minutes } = result.rows[0];
-      if (duration_minutes > 0) {
-        await updateUserListeningTime(user_id, guild_id, Math.floor(duration_minutes));
+      const {
+        user_id: finalUserId,
+        guild_id: finalGuildId,
+        duration_minutes: finalDuration,
+      } = result.rows[0];
+
+      // Update user stats with the final duration_minutes
+      // This is the first time we're adding this duration to user stats
+      // (updateListeningSessionWithTrack only updates session, not user stats)
+      if (finalDuration > 0) {
+        await updateUserListeningTime(finalUserId, finalGuildId, Math.floor(finalDuration));
       }
     }
   } catch (error) {
@@ -1885,6 +1924,11 @@ export async function updateListeningSessionWithTrack(
 /**
  * End all active listening sessions for users in a voice channel
  * Called when bot leaves or channel is cleared
+ * Uses existing duration_minutes from sessions (already updated by updateListeningSessionWithTrack)
+ * Only calculates from started_at if duration_minutes is 0 (session was never updated with tracks)
+ *
+ * IMPORTANT: updateListeningSessionWithTrack only updates duration_minutes in session, NOT user stats.
+ * This function is responsible for updating user stats with the accumulated duration_minutes.
  */
 export async function endAllActiveSessionsInChannel(
   guildId: string,
@@ -1893,16 +1937,24 @@ export async function endAllActiveSessionsInChannel(
   const db = initDatabase();
 
   try {
+    // Update all sessions with ended_at
+    // If duration_minutes is 0 or null, calculate from started_at (user joined but no tracks played)
+    // Otherwise, use existing duration_minutes (already accumulated from tracks via updateListeningSessionWithTrack)
     const result = await db.query(
       `UPDATE listening_sessions
        SET ended_at = CURRENT_TIMESTAMP,
-           duration_minutes = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - started_at)) / 60
+           duration_minutes = CASE
+             WHEN COALESCE(duration_minutes, 0) > 0 THEN duration_minutes
+             ELSE EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - started_at)) / 60
+           END
        WHERE guild_id = $1 AND voice_channel_id = $2 AND ended_at IS NULL
        RETURNING user_id, guild_id, duration_minutes`,
       [guildId, voiceChannelId]
     );
 
     // Update user stats for all ended sessions
+    // This is the first time we're adding this duration to user stats
+    // (updateListeningSessionWithTrack only updates session, not user stats)
     for (const row of result.rows) {
       if (row.duration_minutes > 0) {
         await updateUserListeningTime(row.user_id, row.guild_id, Math.floor(row.duration_minutes));
