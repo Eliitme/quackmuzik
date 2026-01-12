@@ -207,36 +207,6 @@ spec:
           readOnly: true
         - name: lavalink-logs
           mountPath: /opt/Lavalink/logs
-        {{- if .Values.healthChecks.enabled }}
-        livenessProbe:
-          httpGet:
-            path: /version
-            port: http
-            httpHeaders:
-            - name: Authorization
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "quackmuzik.fullname" . }}-secrets
-                  key: lavalink-server-password
-          initialDelaySeconds: 40
-          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
-          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
-          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
-        readinessProbe:
-          httpGet:
-            path: /version
-            port: http
-            httpHeaders:
-            - name: Authorization
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "quackmuzik.fullname" . }}-secrets
-                  key: lavalink-server-password
-          initialDelaySeconds: 40
-          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
-          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
-          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
-        {{- end }}
         resources:
           {{- toYaml .Values.lavalink.resources | nindent 10 }}
       volumes:
