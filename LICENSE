@@ -1,0 +1,151 @@
+QuackMuzik Bot - Non-Commercial License
+
+Copyright (c) 2026 QuackMuzik Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, subject to the following conditions:
+
+1. NON-COMMERCIAL USE ONLY
+
+   The Software and any derivative works may NOT be used for commercial purposes.
+   Commercial purposes include, but are not limited to:
+   - Selling the Software or derivative works
+   - Using the Software to provide paid services
+   - Using the Software in any product or service that generates revenue
+   - Using the Software for advertising or marketing purposes
+   - Using the Software in any business or commercial enterprise
+   - Monetizing the Software through any means (subscriptions, donations in
+     exchange for features, premium versions, etc.)
+
+2. ATTRIBUTION
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+3. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+4. COPYRIGHT AND INTELLECTUAL PROPERTY
+
+   This license does not grant any rights to use trademarks, service marks, or
+   trade names of the copyright holders. All rights not expressly granted are
+   reserved.
+
+5. TERMINATION
+
+   This license is effective until terminated. Your rights under this license
+   will terminate automatically without notice if you fail to comply with any
+   of its terms. Upon termination, you must destroy all copies of the Software
+   in your possession.
+
+6. THIRD-PARTY COMPONENTS
+
+   The Software may include third-party components that are subject to their
+   own licenses. You are responsible for complying with all applicable third-
+   party licenses. Third-party components include, but are not limited to:
+
+   **Runtime Dependencies:**
+   - discord.js (MIT License)
+   - lavalink-client (Apache License 2.0 or as specified by lavalink-client)
+   - dotenv (BSD-2-Clause License)
+   - pg (MIT License)
+
+   **Development Dependencies:**
+   - TypeScript (Apache License 2.0)
+   - ts-node, ts-node-dev (MIT License)
+   - @types/node, @types/pg (MIT License)
+   - prettier (MIT License)
+
+   **External Services (not included in Software but required for operation):**
+   - PostgreSQL (PostgreSQL License)
+   - Lavalink Server (AGPL-3.0 License)
+   - yt-cipher (License as specified by yt-cipher project)
+   - FloweryTTS (License as specified by FloweryTTS project)
+   - LavaSrc Plugin (License as specified by LavaSrc project)
+   - YouTube Plugin (License as specified by YouTube plugin project)
+
+   See package.json for a complete list of dependencies and their respective
+   licenses. You must comply with all third-party licenses when using,
+   modifying, or distributing the Software.
+
+7. MODIFICATIONS
+
+   You may modify the Software for personal or educational use, provided that:
+   - Modifications are clearly marked
+   - Original copyright notices are preserved
+   - Modified versions are subject to the same non-commercial restrictions
+   - Modified versions are not distributed without explicit permission
+   - You maintain compatibility with the original Software's dependencies
+     (TypeScript, Node.js, PostgreSQL, Lavalink, etc.)
+   - You do not remove or alter license notices in source files
+
+8. DISTRIBUTION
+
+   You may distribute unmodified copies of the Software, provided that:
+   - The complete license text is included
+   - All copyright notices are preserved
+   - Distribution is for non-commercial purposes only
+   - Recipients are made aware of the non-commercial restriction
+   - You include all source files (TypeScript files in src/ directory)
+   - You include all configuration files (package.json, tsconfig.json, etc.)
+   - You include all documentation files (README.md, TERMS_OF_SERVICE.md, etc.)
+   - You do not distribute compiled binaries or Docker images without source code
+
+9. EXCEPTIONS
+
+   The following uses are explicitly permitted:
+   - Personal use (including self-hosting for personal Discord servers)
+   - Educational use (schools, universities, research institutions)
+   - Non-profit organizations (charities, open-source projects, community servers)
+   - Contributing to the original project (pull requests, bug reports, documentation)
+   - Self-hosting using Docker, Docker Compose, or Kubernetes for personal or
+     non-commercial purposes
+   - Forking the repository for personal or educational purposes
+   - Using the Software as a learning resource or reference
+
+10. COMMERCIAL USE LICENSE
+
+    For commercial use, please contact the copyright holders to obtain a
+    separate commercial license. Commercial licenses may be subject to fees
+    and additional terms.
+
+---
+
+DEFINITIONS:
+
+"Commercial purposes" means any use that is intended for or directed toward
+commercial advantage or monetary compensation. This includes, but is not
+limited to:
+- Any use in a for-profit business
+- Any use that generates revenue, directly or indirectly
+- Any use in a product or service that is sold or licensed for a fee
+- Any use that supports commercial activities
+
+"Non-commercial purposes" means use that is not for commercial advantage or
+monetary compensation. This includes:
+- Personal use
+- Educational use
+- Research use
+- Use by non-profit organizations
+- Use in open-source projects (that are themselves non-commercial)
+
+---
+
+For questions about this license or to request a commercial license, please
+contact the project maintainers through the project's GitHub repository.
+
+---
+
+This license is based on a non-commercial open-source model. It allows free
+use for personal and educational purposes while protecting against commercial
+exploitation without permission.
+

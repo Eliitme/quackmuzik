@@ -1,0 +1,192 @@
+{{- if .Values.bot.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quackmuzik.fullname" . }}-bot
+  labels:
+    {{- include "quackmuzik.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bot
+spec:
+  replicas: {{ .Values.bot.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "quackmuzik.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: bot
+  template:
+    metadata:
+      labels:
+        {{- include "quackmuzik.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: bot
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecret.create }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret.name | default (printf "%s-imagepullsecret" (include "quackmuzik.fullname" .)) }}
+      {{- else if .Values.global.imagePullSecret.existingSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret.existingSecret }}
+      {{- end }}
+      serviceAccountName: {{ include "quackmuzik.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+      - name: wait-for-lavalink
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z {{ include "quackmuzik.fullname" . }}-lavalink {{ .Values.lavalink.service.port }}; do
+            echo "Waiting for Lavalink..."
+            sleep 2
+          done
+      containers:
+      - name: bot
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ include "quackmuzik.imageRegistry" . }}{{ .Values.bot.image.repository }}:{{ .Values.bot.image.tag }}"
+        imagePullPolicy: {{ .Values.bot.image.pullPolicy }}
+        env:
+        {{- if .Values.secrets.create }}
+        - name: DISCORD_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: discord-token
+        - name: DISCORD_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: discord-client-id
+        {{- end }}
+        - name: LAVALINK_HOST
+          value: {{ printf "%s-lavalink" (include "quackmuzik.fullname" .) | quote }}
+        - name: LAVALINK_PORT
+          value: {{ .Values.bot.lavalink.port | quote }}
+        {{- if and .Values.secrets.create .Values.secrets.lavalinkServerPassword }}
+        - name: LAVALINK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: lavalink-server-password
+        {{- else if .Values.bot.lavalink.password }}
+        - name: LAVALINK_PASSWORD
+          value: {{ .Values.bot.lavalink.password | quote }}
+        {{- end }}
+        - name: DEBUG
+          value: {{ .Values.bot.env.DEBUG | quote }}
+        {{- if .Values.bot.database.host }}
+        - name: DB_HOST
+          value: {{ .Values.bot.database.host | quote }}
+        {{- end }}
+        {{- if .Values.bot.database.port }}
+        - name: DB_PORT
+          value: {{ .Values.bot.database.port | quote }}
+        {{- end }}
+        {{- if .Values.bot.database.name }}
+        - name: DB_NAME
+          value: {{ .Values.bot.database.name | quote }}
+        {{- end }}
+        {{- if .Values.bot.database.user }}
+        - name: DB_USER
+          value: {{ .Values.bot.database.user | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.databasePassword }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: database-password
+        {{- else if .Values.bot.database.password }}
+        - name: DB_PASSWORD
+          value: {{ .Values.bot.database.password | quote }}
+        {{- end }}
+        {{- if .Values.bot.env.botOwnerId }}
+        - name: BOT_OWNER_ID
+          value: {{ .Values.bot.env.botOwnerId | quote }}
+        {{- end }}
+        {{- if .Values.proxy.enabled }}
+        {{- if .Values.proxy.httpProxy }}
+        - name: HTTP_PROXY
+          value: {{ .Values.proxy.httpProxy | quote }}
+        - name: http_proxy
+          value: {{ .Values.proxy.httpProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.httpsProxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.proxy.httpsProxy | quote }}
+        - name: https_proxy
+          value: {{ .Values.proxy.httpsProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.socksProxy }}
+        - name: ALL_PROXY
+          value: {{ .Values.proxy.socksProxy | quote }}
+        - name: all_proxy
+          value: {{ .Values.proxy.socksProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.noProxy }}
+        - name: NO_PROXY
+          value: {{ .Values.proxy.noProxy | quote }}
+        - name: no_proxy
+          value: {{ .Values.proxy.noProxy | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.proxyUsername }}
+        - name: PROXY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: proxy-username
+        {{- else if .Values.proxy.username }}
+        - name: PROXY_USERNAME
+          value: {{ .Values.proxy.username | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.proxyPassword }}
+        - name: PROXY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: proxy-password
+        {{- else if .Values.proxy.password }}
+        - name: PROXY_PASSWORD
+          value: {{ .Values.proxy.password | quote }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.healthChecks.enabled }}
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "pgrep -f 'node dist/index.js' || exit 1"
+          initialDelaySeconds: 30
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "pgrep -f 'node dist/index.js' || exit 1"
+          initialDelaySeconds: 10
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.bot.resources | nindent 10 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+

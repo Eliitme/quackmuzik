@@ -1,0 +1,267 @@
+{{- if .Values.lavalink.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quackmuzik.fullname" . }}-lavalink
+  labels:
+    {{- include "quackmuzik.labels" . | nindent 4 }}
+    app.kubernetes.io/component: lavalink
+spec:
+  replicas: {{ .Values.lavalink.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "quackmuzik.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: lavalink
+  template:
+    metadata:
+      labels:
+        {{- include "quackmuzik.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: lavalink
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecret.create }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret.name | default (printf "%s-imagepullsecret" (include "quackmuzik.fullname" .)) }}
+      {{- else if .Values.global.imagePullSecret.existingSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret.existingSecret }}
+      {{- end }}
+      serviceAccountName: {{ include "quackmuzik.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+      - name: wait-for-yt-cipher
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z {{ include "quackmuzik.fullname" . }}-yt-cipher {{ .Values.ytCipher.service.port }}; do
+            echo "Waiting for yt-cipher..."
+            sleep 2
+          done
+      containers:
+      - name: lavalink
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.lavalink.image.repository }}:{{ .Values.lavalink.image.tag }}"
+        imagePullPolicy: {{ .Values.lavalink.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.lavalink.server.port }}
+          protocol: TCP
+        env:
+        - name: _JAVA_OPTIONS
+          value: {{ .Values.lavalink.javaOptions | quote }}
+        - name: SERVER_PORT
+          value: {{ .Values.lavalink.server.port | quote }}
+        {{- if and .Values.secrets.create .Values.secrets.lavalinkServerPassword }}
+        - name: LAVALINK_SERVER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: lavalink-server-password
+        {{- else if .Values.lavalink.server.password }}
+        - name: LAVALINK_SERVER_PASSWORD
+          value: {{ .Values.lavalink.server.password | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.spotifyClientId }}
+        - name: SPOTIFY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: spotify-client-id
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.spotifyClientSecret }}
+        - name: SPOTIFY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: spotify-client-secret
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.appleMusicApiToken }}
+        - name: APPLE_MUSIC_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: apple-music-api-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.deezerMasterKey }}
+        - name: DEEZER_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: deezer-master-key
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.yandexMusicToken }}
+        - name: YANDEX_MUSIC_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: yandex-music-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.vkUserToken }}
+        - name: VK_USER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: vk-user-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.tidalToken }}
+        - name: TIDAL_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: tidal-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.tidalRefreshToken }}
+        - name: TIDAL_REFRESH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: tidal-refresh-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.qobuzOauthToken }}
+        - name: QOBUZ_OAUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: qobuz-oauth-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.qobuzAppId }}
+        - name: QOBUZ_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: qobuz-app-id
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.youtubeOauthRefreshToken }}
+        - name: YOUTUBE_OAUTH_REFRESH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: youtube-oauth-refresh-token
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.sentryDsn }}
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: sentry-dsn
+        {{- end }}
+        {{- if .Values.lavalink.env.sentryEnvironment }}
+        - name: SENTRY_ENVIRONMENT
+          value: {{ .Values.lavalink.env.sentryEnvironment | quote }}
+        {{- end }}
+        {{- if .Values.proxy.enabled }}
+        {{- if .Values.proxy.httpProxy }}
+        - name: HTTP_PROXY
+          value: {{ .Values.proxy.httpProxy | quote }}
+        - name: http_proxy
+          value: {{ .Values.proxy.httpProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.httpsProxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.proxy.httpsProxy | quote }}
+        - name: https_proxy
+          value: {{ .Values.proxy.httpsProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.socksProxy }}
+        - name: ALL_PROXY
+          value: {{ .Values.proxy.socksProxy | quote }}
+        - name: all_proxy
+          value: {{ .Values.proxy.socksProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.noProxy }}
+        - name: NO_PROXY
+          value: {{ .Values.proxy.noProxy | quote }}
+        - name: no_proxy
+          value: {{ .Values.proxy.noProxy | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.proxyUsername }}
+        - name: PROXY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: proxy-username
+        {{- else if .Values.proxy.username }}
+        - name: PROXY_USERNAME
+          value: {{ .Values.proxy.username | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.proxyPassword }}
+        - name: PROXY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: proxy-password
+        {{- else if .Values.proxy.password }}
+        - name: PROXY_PASSWORD
+          value: {{ .Values.proxy.password | quote }}
+        {{- end }}
+        {{- end }}
+        volumeMounts:
+        - name: lavalink-config
+          mountPath: /opt/Lavalink/application.yml
+          subPath: application.yml
+          readOnly: true
+        - name: lavalink-logs
+          mountPath: /opt/Lavalink/logs
+        {{- if .Values.healthChecks.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /version
+            port: http
+            httpHeaders:
+            - name: Authorization
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "quackmuzik.fullname" . }}-secrets
+                  key: lavalink-server-password
+          initialDelaySeconds: 40
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: http
+            httpHeaders:
+            - name: Authorization
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "quackmuzik.fullname" . }}-secrets
+                  key: lavalink-server-password
+          initialDelaySeconds: 40
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.lavalink.resources | nindent 10 }}
+      volumes:
+      - name: lavalink-config
+        configMap:
+          name: {{ include "quackmuzik.fullname" . }}-lavalink-config
+      {{- if .Values.lavalink.persistence.enabled }}
+      - name: lavalink-logs
+        persistentVolumeClaim:
+          claimName: {{ include "quackmuzik.fullname" . }}-lavalink-logs
+      {{- else }}
+      - name: lavalink-logs
+        emptyDir: {}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+

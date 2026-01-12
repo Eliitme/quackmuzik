@@ -1,0 +1,180 @@
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  BOT_IMAGE_NAME: ${{ github.repository }}/bot
+  YT_CIPHER_IMAGE_NAME: ${{ github.repository }}/yt-cipher
+  KUBERNETES_NAMESPACE: quackmuzik
+
+jobs:
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    environment: Production
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for bot image
+        id: bot-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BOT_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract metadata for yt-cipher image
+        id: yt-cipher-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.YT_CIPHER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push bot image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.bot-meta.outputs.tags }}
+          labels: ${{ steps.bot-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # BuildKit is enabled by default in docker/setup-buildx-action@v3
+          # Cache mounts in Dockerfile will be automatically used
+
+      - name: Build and push yt-cipher image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./yt-cipher
+          file: ./yt-cipher/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.yt-cipher-meta.outputs.tags }}
+          labels: ${{ steps.yt-cipher-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    environment: Production
+    needs: build
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Set up Kubernetes context
+        if: env.KUBECONFIG != ''
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Determine image tags
+        id: image-tags
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+          else
+            TAG=latest
+          fi
+          echo "bot_tag=${{ env.REGISTRY }}/${{ env.BOT_IMAGE_NAME }}:${TAG}" >> $GITHUB_OUTPUT
+          echo "yt_cipher_tag=${{ env.REGISTRY }}/${{ env.YT_CIPHER_IMAGE_NAME }}:${TAG}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Deploy with Helm
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          helm upgrade --install quackmuzik ./helm/quackmuzik \
+            --namespace ${{ env.KUBERNETES_NAMESPACE || 'default' }} \
+            --create-namespace \
+            --set bot.image.repository=${{ env.REGISTRY }}/${{ env.BOT_IMAGE_NAME }} \
+            --set bot.image.tag=${{ steps.image-tags.outputs.tag }} \
+            --set ytCipher.image.repository=${{ env.REGISTRY }}/${{ env.YT_CIPHER_IMAGE_NAME }} \
+            --set ytCipher.image.tag=${{ steps.image-tags.outputs.tag }} \
+            --set global.imagePullSecret.create=true \
+            --set global.imagePullSecret.registry=${{ env.REGISTRY }} \
+            --set secrets.imagePullSecretUsername=${{ secrets.IMAGE_PULL_SECRET_USERNAME || github.actor }} \
+            --set secrets.imagePullSecretPassword="${{ secrets.IMAGE_PULL_SECRET_PASSWORD || secrets.GITHUB_TOKEN }}" \
+            --set secrets.discordToken="${{ secrets.DISCORD_TOKEN }}" \
+            --set secrets.discordClientId="${{ secrets.DISCORD_CLIENT_ID }}" \
+            --set secrets.lavalinkServerPassword="${{ secrets.LAVALINK_SERVER_PASSWORD }}" \
+            --set secrets.spotifyClientId="${{ secrets.SPOTIFY_CLIENT_ID }}" \
+            --set secrets.spotifyClientSecret="${{ secrets.SPOTIFY_CLIENT_SECRET }}" \
+            --set secrets.appleMusicApiToken="${{ secrets.APPLE_MUSIC_API_TOKEN }}" \
+            --set secrets.deezerMasterKey="${{ secrets.DEEZER_MASTER_KEY }}" \
+            --set secrets.yandexMusicToken="${{ secrets.YANDEX_MUSIC_TOKEN }}" \
+            --set secrets.vkUserToken="${{ secrets.VK_USER_TOKEN }}" \
+            --set secrets.tidalToken="${{ secrets.TIDAL_TOKEN }}" \
+            --set secrets.tidalRefreshToken="${{ secrets.TIDAL_REFRESH_TOKEN }}" \
+            --set secrets.qobuzOauthToken="${{ secrets.QOBUZ_OAUTH_TOKEN }}" \
+            --set secrets.qobuzAppId="${{ secrets.QOBUZ_APP_ID }}" \
+            --set secrets.youtubeOauthRefreshToken="${{ secrets.YOUTUBE_OAUTH_REFRESH_TOKEN }}" \
+            --set secrets.sentryDsn="${{ secrets.SENTRY_DSN }}" \
+            --set secrets.databasePassword="${{ secrets.DATABASE_PASSWORD }}" \
+            --set secrets.proxyUsername="${{ secrets.PROXY_USERNAME }}" \
+            --set secrets.proxyPassword="${{ secrets.PROXY_PASSWORD }}" \
+            --set bot.env.botOwnerId="${{ secrets.BOT_OWNER_ID }}" \
+            --set bot.database.host="${{ secrets.DATABASE_HOST }}" \
+            --set bot.database.port="${{ secrets.DATABASE_PORT }}" \
+            --set bot.database.name="${{ secrets.DATABASE_NAME }}" \
+            --set bot.database.user="${{ secrets.DATABASE_USER }}" \
+            --set lavalink.env.sentryEnvironment="${{ secrets.SENTRY_ENVIRONMENT }}" \
+            --set proxy.enabled=${{ secrets.PROXY_ENABLED || 'false' }} \
+            --set proxy.httpProxy="${{ secrets.PROXY_HTTP }}" \
+            --set proxy.httpsProxy="${{ secrets.PROXY_HTTPS }}" \
+            --set proxy.socksProxy="${{ secrets.PROXY_SOCKS }}" \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n ${{ env.KUBERNETES_NAMESPACE || 'default' }} -l app.kubernetes.io/name=quackmuzik
+          kubectl get svc -n ${{ env.KUBERNETES_NAMESPACE || 'default' }} -l app.kubernetes.io/name=quackmuzik
