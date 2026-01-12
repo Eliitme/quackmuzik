@@ -39,7 +39,17 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
 
     // Lưu track vào lịch sử khi track kết thúc (chỉ lưu track đã phát, không phải track trong queue)
     if (track) {
-      await savePlayHistory(player.guildId, track).catch((error) => {
+      // Transform track to match savePlayHistory signature
+      const trackForHistory = {
+        info: track.info,
+        requester:
+          typeof track.requester === 'string'
+            ? track.requester
+            : typeof track.requester === 'object' && track.requester && 'id' in track.requester
+              ? { id: String(track.requester.id) }
+              : undefined,
+      };
+      await savePlayHistory(player.guildId, trackForHistory).catch((error) => {
         logger.error('Failed to save play history', {
           guildId: player.guildId,
           error,
