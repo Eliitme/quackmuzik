@@ -8,10 +8,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with BuildKit cache mount
+# Install production dependencies with BuildKit cache mount
 # This allows GitHub Actions to cache node_modules between builds
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production --ignore-scripts --no-audit --no-fund
+    npm config set cache /root/.npm --global && \
+    npm ci --only=production --prefer-offline --no-audit && \
+    npm cache clean --force
 
 # ============================================
 # Stage 2: Build
@@ -26,7 +28,9 @@ COPY tsconfig.json ./
 
 # Install all dependencies (including devDependencies for build)
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts --no-audit --no-fund
+    npm config set cache /root/.npm --global && \
+    npm ci --prefer-offline --no-audit && \
+    npm cache clean --force
 
 # Copy source code
 COPY src ./src
