@@ -110,11 +110,32 @@ jobs:
           version: 'latest'
 
       - name: Set up Kubernetes context
-        if: env.KUBECONFIG != ''
+        id: setup-kubeconfig
         run: |
+          if [ -z "${{ secrets.KUBECONFIG }}" ]; then
+            echo "error=KUBECONFIG secret is not set" >> $GITHUB_OUTPUT
+            echo "::error::KUBECONFIG secret is not set. Please configure it in repository settings."
+            exit 1
+          fi
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
+          export KUBECONFIG=$HOME/.kube/config
+          echo "kubeconfig_path=$HOME/.kube/config" >> $GITHUB_OUTPUT
+          echo "::info::Kubernetes config file created successfully"
+
+      - name: Verify Kubernetes connection
+        env:
+          KUBECONFIG: ${{ steps.setup-kubeconfig.outputs.kubeconfig_path }}
+        run: |
+          echo "Verifying Kubernetes cluster connection..."
+          if ! kubectl cluster-info > /dev/null 2>&1; then
+            echo "::error::Failed to connect to Kubernetes cluster. Please verify your KUBECONFIG secret is valid."
+            kubectl cluster-info || true
+            exit 1
+          fi
+          echo "::info::Successfully connected to Kubernetes cluster"
+          kubectl version --short || true
 
       - name: Determine image tags
         id: image-tags
@@ -130,7 +151,7 @@ jobs:
 
       - name: Deploy with Helm
         env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+          KUBECONFIG: ${{ steps.setup-kubeconfig.outputs.kubeconfig_path }}
         run: |
           helm upgrade --install quackmuzik ./helm/quackmuzik \
             --namespace ${{ env.KUBERNETES_NAMESPACE || 'default' }} \
@@ -175,6 +196,9 @@ jobs:
             --timeout 10m
 
       - name: Verify deployment
+        env:
+          KUBECONFIG: ${{ steps.setup-kubeconfig.outputs.kubeconfig_path }}
         run: |
+          echo "Verifying deployment status..."
           kubectl get pods -n ${{ env.KUBERNETES_NAMESPACE || 'default' }} -l app.kubernetes.io/name=quackmuzik
           kubectl get svc -n ${{ env.KUBERNETES_NAMESPACE || 'default' }} -l app.kubernetes.io/name=quackmuzik
