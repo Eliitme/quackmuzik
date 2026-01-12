@@ -1,7 +1,23 @@
-import { Client, Interaction, ButtonInteraction, VoiceChannel } from 'discord.js';
+import {
+  Client,
+  Interaction,
+  ButtonInteraction,
+  VoiceChannel,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+} from 'discord.js';
 import { LavalinkManager } from 'lavalink-client';
 import { logger } from '../utils/logger';
-import { getGuildLocale, getGuildDjRole, getGuild24_7Mode } from '../utils/database';
+import {
+  getGuildLocale,
+  getGuildDjRole,
+  getGuild24_7Mode,
+  likeTrack,
+  unlikeTrack,
+  hasUserLikedTrack,
+  getTrackLikes,
+} from '../utils/database';
 import { translate, type Locale } from '../utils/i18n';
 import { addVoteSkip, clearVoteSkip, getVoteSkipCount } from '../utils/voteSkip';
 
@@ -323,6 +339,155 @@ export function registerInteractionCreateEvent(
             await buttonInteraction
               .followUp({
                 content: translate(locale, 'commands.nowplaying.no_queue'),
+                ephemeral: true,
+              })
+              .catch(() => {});
+          }
+          break;
+        }
+
+        case 'like': {
+          const currentTrack = player.queue.current;
+          const trackUri = currentTrack.info.uri;
+          const trackIdentifier = currentTrack.info.identifier || null;
+          const guildId = buttonInteraction.guild.id;
+          const userId = buttonInteraction.user.id;
+
+          try {
+            const alreadyLiked = await hasUserLikedTrack(userId, trackUri, guildId);
+
+            if (alreadyLiked) {
+              // Unlike
+              const success = await unlikeTrack(userId, trackUri, guildId);
+              if (success) {
+                const likes = await getTrackLikes(trackUri, guildId);
+                await buttonInteraction
+                  .followUp({
+                    content: translate(locale, 'commands.like.unliked', {
+                      title: currentTrack.info.title,
+                      likes: likes.toString(),
+                    }),
+                    ephemeral: true,
+                  })
+                  .catch(() => {});
+
+                // Update button in original message
+                try {
+                  const isLiked = await hasUserLikedTrack(userId, trackUri, guildId);
+                  const likesCount = await getTrackLikes(trackUri, guildId);
+                  const likeButton = new ButtonBuilder()
+                    .setCustomId('np_like')
+                    .setLabel(
+                      translate(locale, 'commands.nowplaying.button_like', {
+                        count: likesCount.toString(),
+                      })
+                    )
+                    .setStyle(isLiked ? ButtonStyle.Success : ButtonStyle.Secondary)
+                    .setEmoji(isLiked ? '❤️' : '🤍');
+
+                  // Get existing components and update like button
+                  const message = await buttonInteraction.message.fetch().catch(() => null);
+                  if (
+                    message &&
+                    'components' in message &&
+                    message.components &&
+                    message.components.length > 1
+                  ) {
+                    const existingRow2 = message.components[1];
+                    if (
+                      existingRow2 &&
+                      'components' in existingRow2 &&
+                      existingRow2.components.length > 1
+                    ) {
+                      // Get stop button from existing row - recreate it
+                      const stopButton = new ButtonBuilder()
+                        .setCustomId('np_stop')
+                        .setLabel(translate(locale, 'commands.nowplaying.button_stop'))
+                        .setStyle(ButtonStyle.Danger)
+                        .setEmoji('❌');
+
+                      const newRow2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        likeButton,
+                        stopButton
+                      );
+                      await message
+                        .edit({ components: [message.components[0], newRow2] })
+                        .catch(() => {});
+                    }
+                  }
+                } catch (updateError) {
+                  // Ignore update errors
+                }
+              }
+            } else {
+              // Like
+              const success = await likeTrack(userId, trackUri, trackIdentifier, guildId);
+              if (success) {
+                const likes = await getTrackLikes(trackUri, guildId);
+                await buttonInteraction
+                  .followUp({
+                    content: translate(locale, 'commands.like.liked', {
+                      title: currentTrack.info.title,
+                      likes: likes.toString(),
+                    }),
+                    ephemeral: true,
+                  })
+                  .catch(() => {});
+
+                // Update button in original message
+                try {
+                  const isLiked = await hasUserLikedTrack(userId, trackUri, guildId);
+                  const likesCount = await getTrackLikes(trackUri, guildId);
+                  const likeButton = new ButtonBuilder()
+                    .setCustomId('np_like')
+                    .setLabel(
+                      translate(locale, 'commands.nowplaying.button_like', {
+                        count: likesCount.toString(),
+                      })
+                    )
+                    .setStyle(isLiked ? ButtonStyle.Success : ButtonStyle.Secondary)
+                    .setEmoji(isLiked ? '❤️' : '🤍');
+
+                  // Get existing components and update like button
+                  const message = await buttonInteraction.message.fetch().catch(() => null);
+                  if (
+                    message &&
+                    'components' in message &&
+                    message.components &&
+                    message.components.length > 1
+                  ) {
+                    const existingRow2 = message.components[1];
+                    if (
+                      existingRow2 &&
+                      'components' in existingRow2 &&
+                      existingRow2.components.length > 1
+                    ) {
+                      // Get stop button from existing row - recreate it
+                      const stopButton = new ButtonBuilder()
+                        .setCustomId('np_stop')
+                        .setLabel(translate(locale, 'commands.nowplaying.button_stop'))
+                        .setStyle(ButtonStyle.Danger)
+                        .setEmoji('❌');
+
+                      const newRow2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        likeButton,
+                        stopButton
+                      );
+                      await message
+                        .edit({ components: [message.components[0], newRow2] })
+                        .catch(() => {});
+                    }
+                  }
+                } catch (updateError) {
+                  // Ignore update errors
+                }
+              }
+            }
+          } catch (error) {
+            logger.error('Error handling like button', { error, guildId, userId });
+            await buttonInteraction
+              .followUp({
+                content: translate(locale, 'commands.like.error'),
                 ephemeral: true,
               })
               .catch(() => {});

@@ -12,6 +12,7 @@ import { speakCommand } from './music/speak';
 import { playlistCommand } from './music/playlist';
 import { leaderboardCommand } from './music/leaderboard';
 import { rankCommand } from './music/rank';
+import { likeCommand } from './music/like';
 
 // Admin commands
 import { helpCommand } from './admin/help';
@@ -44,6 +45,7 @@ const commandList = [
   playlistCommand,
   leaderboardCommand,
   rankCommand,
+  likeCommand,
   prefixCommand,
   localeCommand,
   termsCommand,

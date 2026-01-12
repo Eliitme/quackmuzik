@@ -2,9 +2,10 @@ import { User, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { createEmbedWithCustomFooter } from '../../utils/embed';
-import { getGuildLocale } from '../../utils/database';
+import { getGuildLocale, hasUserLikedTrack, getTrackLikes } from '../../utils/database';
 import { translate, getTranslations, type Locale } from '../../utils/i18n';
 import { createSimpleSpectrum } from '../../utils/spectrum';
+import { logger } from '../../utils/logger';
 
 export const nowPlayingCommand: Command = {
   name: 'nowplaying',
@@ -156,15 +157,40 @@ export const nowPlayingCommand: Command = {
       .setStyle(ButtonStyle.Danger)
       .setEmoji('❌');
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    // Check if user has liked this track
+    let isLiked = false;
+    let likesCount = 0;
+    try {
+      const trackUri = track.info.uri;
+      const guildId = message.guild!.id;
+      const userId = message.author.id;
+      isLiked = await hasUserLikedTrack(userId, trackUri, guildId);
+      likesCount = await getTrackLikes(trackUri, guildId);
+    } catch (error) {
+      logger.error('Error getting like status for nowplaying', { error });
+      // Continue with default values
+    }
+
+    const likeButton = new ButtonBuilder()
+      .setCustomId('np_like')
+      .setLabel(
+        translate(locale, 'commands.nowplaying.button_like', {
+          count: likesCount.toString(),
+        })
+      )
+      .setStyle(isLiked ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setEmoji(isLiked ? '❤️' : '🤍');
+
+    const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       previousButton,
       pauseButton,
       skipButton,
       loopButton,
-      shuffleButton,
-      stopButton
+      shuffleButton
     );
 
-    await message.reply({ embeds: [embed], components: [row] });
+    const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(likeButton, stopButton);
+
+    await message.reply({ embeds: [embed], components: [row1, row2] });
   },
 };
