@@ -36,6 +36,16 @@ data:
         youtubeSearchEnabled: false
         soundcloudSearchEnabled: true
         gc-warnings: true
+        # IP Rotation (Optional) - Helps avoid rate limiting and access issues
+        # Requires IP blocks in CIDR notation (e.g., "1.0.0.0/8")
+        # Strategies: RotateOnBan, LoadBalance, NanoSwitch, RotatingNanoSwitch
+        # Uncomment and configure if you have multiple IP addresses available
+        # ratelimit:
+        #   ipBlocks: ["1.0.0.0/8"]  # List of IP blocks in CIDR notation
+        #   excludedIps: []          # IPs to exclude from usage
+        #   strategy: "RotateOnBan"   # RotateOnBan, LoadBalance, NanoSwitch, or RotatingNanoSwitch
+        #   searchTriggersFail: true # Whether 429 response during search should mark IP as failing
+        #   retryLimit: -1            # Number of retry attempts (-1 uses default Lavaplayer value)
 
     metrics:
       prometheus:
@@ -68,14 +78,25 @@ data:
         remoteCipher:
           url: 'http://{{ include "quackmuzik.fullname" . }}-yt-cipher:{{ .Values.ytCipher.service.port }}/'
           userAgent: 'QuackMuzik-Bot'
+        # Clients are queried in order. More clients = better fallback for different video types
+        # Available clients: MUSIC, ANDROID_VR, ANDROID, WEB, IOS, TVHTML5EMBEDDED
+        # TVHTML5EMBEDDED requires OAuth but supports livestreams and can bypass some restrictions
         clients:
-          - MUSIC
-          - ANDROID_VR
-          - WEB
+          - MUSIC          # YouTube Music client (best for music videos, supports ytmsearch:)
+          - ANDROID_VR     # Android VR client (good fallback)
+          - ANDROID        # Android client (additional fallback, may be restricted)
+          - WEB            # Web client (fallback for public videos)
+          - IOS            # iOS client (additional fallback)
+          - TVHTML5EMBEDDED # TV/Embedded client (requires OAuth, supports livestreams, best for restricted videos)
         oauth:
+          # OAuth is only useful if you have a valid refreshToken
+          # If refreshToken is empty, OAuth will be disabled automatically
+          # Set skipInitialization: true to prevent OAuth init attempts when token is missing
           enabled: true
           refreshToken: '${YOUTUBE_OAUTH_REFRESH_TOKEN:}'
-          skipInitialization: false
+          # Skip OAuth initialization if no token provided (prevents startup errors)
+          # If you have a valid refreshToken, set this to false to initialize OAuth
+          skipInitialization: true
 
       lavasrc:
         spotify:

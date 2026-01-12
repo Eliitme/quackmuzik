@@ -354,10 +354,42 @@ plugins:
 ### YouTube Cipher
 
 The bot uses [yt-cipher](https://github.com/kikkia/yt-cipher) for YouTube signature decryption:
-- ✅ No OAuth2 required
+- ✅ No OAuth2 required (works without OAuth token)
 - ✅ No poToken needed
 - ✅ Public instance available at `https://cipher.kikkia.dev/`
 - ✅ Self-hosted option included in docker-compose
+
+**YouTube OAuth (Optional):**
+- `YOUTUBE_OAUTH_REFRESH_TOKEN` is optional but recommended for better YouTube access
+- **Without OAuth token**: Most videos will work, but some restricted/age-restricted videos may fail
+- **With OAuth token**: Better access to all YouTube content, including restricted videos
+- **Configuration**: OAuth is automatically disabled if no token is provided (prevents startup errors)
+- **Note**: Using OAuth tokens can pose risks, including potential account termination. Use a secondary or burner account for OAuth authentication.
+
+**YouTube Client Fallback:**
+The bot uses multiple YouTube clients in fallback order:
+1. `MUSIC` - YouTube Music client (best for music videos, supports `ytmsearch:`)
+2. `ANDROID_VR` - Android VR client (good fallback)
+3. `ANDROID` - Android client (additional fallback, may be restricted)
+4. `WEB` - Web client (fallback for public videos)
+5. `IOS` - iOS client (additional fallback)
+6. `TVHTML5EMBEDDED` - TV/Embedded client (requires OAuth, supports livestreams, best for restricted videos)
+
+If one client fails, the bot automatically tries the next client in the list.
+
+**Advanced Options:**
+
+1. **OAuth Token Generator:**
+   - Use [YouTube OAuth Token Generator](https://youfresh.thiranjaya.com/) to easily generate refresh tokens
+   - Recommended to use a secondary or burner account to avoid risks
+   - Add the generated token to `.env` as `YOUTUBE_OAUTH_REFRESH_TOKEN`
+
+2. **IP Rotation (Optional):**
+   - Helps avoid rate limiting and access issues
+   - Requires IP blocks in CIDR notation (e.g., `1.0.0.0/8`)
+   - Available strategies: `RotateOnBan`, `LoadBalance`, `NanoSwitch`, `RotatingNanoSwitch`
+   - Configure in `lavalink/application.yml` under `lavalink.server.ratelimit`
+   - Only useful if you have multiple IP addresses available
 
 ## 📊 Logging
 
@@ -762,6 +794,18 @@ docker-compose ps
 ### YouTube playback issues
 - ✅ Check yt-cipher service is healthy: `docker-compose ps yt-cipher`
 - ✅ Verify yt-cipher endpoint in Lavalink config
+- ✅ **Some YouTube links not working?**
+  - This is normal - some videos require OAuth authentication
+  - **Solution 1**: Add `YOUTUBE_OAUTH_REFRESH_TOKEN` to `.env` for better access (optional)
+    - Generate token using [YouTube OAuth Token Generator](https://youfresh.thiranjaya.com/)
+    - Use a secondary/burner account to avoid risks
+  - **Solution 2**: The bot automatically tries multiple clients (MUSIC → ANDROID_VR → ANDROID → WEB → IOS → TVHTML5EMBEDDED)
+    - With OAuth token, `TVHTML5EMBEDDED` client can bypass many restrictions
+  - **Solution 3**: Check Lavalink logs: `docker-compose logs lavalink` for specific error messages
+  - **Solution 4** (Advanced): Configure IP rotation if you have multiple IP addresses
+    - Edit `lavalink/application.yml` and uncomment `ratelimit` section
+    - Add your IP blocks in CIDR notation
+  - **Note**: Age-restricted, region-restricted, or private videos may not work without OAuth
 
 ## 📊 Database Schema
 
