@@ -86,7 +86,7 @@
     },
     "skip": {
       "name": "skip",
-      "description": "Skip current song",
+      "description": "Skip current song (vote skip or DJ role bypass)",
       "usage": "skip",
       "no_voice": "❌ You must be in a voice channel to use this command!",
       "not_playing": "❌ No song is currently playing!",
@@ -94,7 +94,12 @@
       "skipped": "⏭️ Skipped: **{title}**",
       "skipped_last": "⏭️ Skipped: **{title}**\n✅ End of queue, stopped playing.",
       "no_next": "❌ No more songs in queue!",
-      "error": "❌ An error occurred while skipping the song!"
+      "error": "❌ An error occurred while skipping the song!",
+      "vote_title": "🗳️ Vote to Skip",
+      "vote_description": "**{title}**\n\n✅ Votes: **{votes}/{required}**\n\n💡 Users with DJ role can skip immediately",
+      "already_voted": "❌ You have already voted to skip this song!\n📊 Current votes: **{votes}/{required}**",
+      "vote_skipped": "⏭️ **Vote passed!** Skipped: **{title}**\n🗳️ Votes: **{votes}/{required}**",
+      "vote_skipped_last": "⏭️ **Vote passed!** Skipped: **{title}**\n🗳️ Votes: **{votes}/{required}**\n✅ End of queue, stopped playing."
     },
     "jump": {
       "name": "jump",
@@ -182,6 +187,23 @@
       "invalid": "❌ Language `{code}` is invalid! Valid language codes: `{valid}`",
       "already_set": "❌ This server is already using this language!",
       "error": "❌ An error occurred while updating language!"
+    },
+    "djrole": {
+      "name": "djrole",
+      "description": "View or set DJ role for vote skip bypass",
+      "usage": "djrole [role mention or role ID]",
+      "current_title": "🎧 DJ Role Configuration",
+      "current_description": "DJ role allows users to skip tracks immediately without voting.",
+      "current_role": "🎵 Current DJ Role",
+      "no_role_set": "❌ No DJ role is set. Users will need to vote to skip tracks.",
+      "role_not_found": "❌ Role not found! Please mention a role or provide a valid role ID.",
+      "how_to_set": "💡 How to Set",
+      "set_instruction": "Use `{prefix}djrole <role mention or role ID>` to set a DJ role.\nUse `{prefix}djrole none` to remove the DJ role.",
+      "set_title": "✅ DJ Role Set",
+      "set_description": "DJ role has been set to: {role}\n\nUsers with this role can skip tracks immediately without voting.",
+      "removed_title": "✅ DJ Role Removed",
+      "removed_description": "DJ role has been removed. All users will now need to vote to skip tracks.",
+      "error": "❌ An error occurred while updating DJ role!"
     },
     "terms": {
       "name": "terms",

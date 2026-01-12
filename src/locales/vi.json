@@ -86,7 +86,7 @@
     },
     "skip": {
       "name": "skip",
-      "description": "Bỏ qua bài hát hiện tại",
+      "description": "Bỏ qua bài hát hiện tại (vote skip hoặc DJ role bypass)",
       "usage": "skip",
       "no_voice": "❌ Bạn phải ở trong voice channel để sử dụng lệnh này!",
       "not_playing": "❌ Không có bài hát nào đang phát!",
@@ -94,7 +94,12 @@
       "skipped": "⏭️ Đã bỏ qua: **{title}**",
       "skipped_last": "⏭️ Đã bỏ qua: **{title}**\n✅ Hết danh sách phát, đã kết thúc phát nhạc.",
       "no_next": "❌ Không còn bài hát nào trong queue!",
-      "error": "❌ Có lỗi xảy ra khi bỏ qua bài hát!"
+      "error": "❌ Có lỗi xảy ra khi bỏ qua bài hát!",
+      "vote_title": "🗳️ Vote để Bỏ qua",
+      "vote_description": "**{title}**\n\n✅ Số phiếu: **{votes}/{required}**\n\n💡 Người dùng có role DJ có thể bỏ qua ngay lập tức",
+      "already_voted": "❌ Bạn đã vote để bỏ qua bài hát này rồi!\n📊 Số phiếu hiện tại: **{votes}/{required}**",
+      "vote_skipped": "⏭️ **Vote đã đạt!** Đã bỏ qua: **{title}**\n🗳️ Số phiếu: **{votes}/{required}**",
+      "vote_skipped_last": "⏭️ **Vote đã đạt!** Đã bỏ qua: **{title}**\n🗳️ Số phiếu: **{votes}/{required}**\n✅ Hết danh sách phát, đã kết thúc phát nhạc."
     },
     "jump": {
       "name": "jump",
@@ -182,6 +187,23 @@
       "invalid": "❌ Ngôn ngữ `{code}` không hợp lệ! Các mã ngôn ngữ hợp lệ: `{valid}`",
       "already_set": "❌ Server này đã sử dụng ngôn ngữ này rồi!",
       "error": "❌ Có lỗi xảy ra khi cập nhật ngôn ngữ!"
+    },
+    "djrole": {
+      "name": "djrole",
+      "description": "Xem hoặc đặt role DJ để bỏ qua vote skip",
+      "usage": "djrole [mention role hoặc role ID]",
+      "current_title": "🎧 Cấu hình Role DJ",
+      "current_description": "Role DJ cho phép người dùng bỏ qua bài hát ngay lập tức mà không cần vote.",
+      "current_role": "🎵 Role DJ hiện tại",
+      "no_role_set": "❌ Chưa đặt role DJ. Người dùng sẽ cần vote để bỏ qua bài hát.",
+      "role_not_found": "❌ Không tìm thấy role! Vui lòng mention role hoặc cung cấp role ID hợp lệ.",
+      "how_to_set": "💡 Cách đặt",
+      "set_instruction": "Sử dụng `{prefix}djrole <mention role hoặc role ID>` để đặt role DJ.\nSử dụng `{prefix}djrole none` để xóa role DJ.",
+      "set_title": "✅ Đã đặt Role DJ",
+      "set_description": "Role DJ đã được đặt thành: {role}\n\nNgười dùng có role này có thể bỏ qua bài hát ngay lập tức mà không cần vote.",
+      "removed_title": "✅ Đã xóa Role DJ",
+      "removed_description": "Role DJ đã được xóa. Tất cả người dùng sẽ cần vote để bỏ qua bài hát.",
+      "error": "❌ Có lỗi xảy ra khi cập nhật role DJ!"
     },
     "terms": {
       "name": "terms",

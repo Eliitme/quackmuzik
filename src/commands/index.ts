@@ -16,6 +16,7 @@ import { helpCommand } from './admin/help';
 import { prefixCommand } from './admin/prefix';
 import { localeCommand } from './admin/locale';
 import { termsCommand } from './admin/terms';
+import { djroleCommand } from './admin/djrole';
 
 // System commands
 // import { debugCommand } from './system/debug'; // OPTIONAL: Uncomment to enable debug command
@@ -39,6 +40,7 @@ const commandList = [
   prefixCommand,
   localeCommand,
   termsCommand,
+  djroleCommand,
   guildsCommand,
   // debugCommand, // OPTIONAL: Uncomment to enable debug command
 ];

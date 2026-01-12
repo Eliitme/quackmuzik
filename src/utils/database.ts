@@ -51,6 +51,7 @@ export async function ensureSchema(): Promise<void> {
         terms_accepted BOOLEAN DEFAULT false,
         terms_accepted_at TIMESTAMP,
         terms_accepted_by VARCHAR(20),
+        dj_role_id VARCHAR(20),
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -68,6 +69,21 @@ export async function ensureSchema(): Promise<void> {
           ADD COLUMN terms_accepted BOOLEAN DEFAULT false,
           ADD COLUMN terms_accepted_at TIMESTAMP,
           ADD COLUMN terms_accepted_by VARCHAR(20);
+        END IF;
+      END $$;
+    `);
+
+    // Add dj_role_id column to existing guild_settings table if it doesn't exist
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'guild_settings'
+          AND column_name = 'dj_role_id'
+        ) THEN
+          ALTER TABLE guild_settings
+          ADD COLUMN dj_role_id VARCHAR(20);
         END IF;
       END $$;
     `);
@@ -836,6 +852,75 @@ export async function setGuildTermsAccepted(guildId: string, acceptedBy: string)
     return true;
   } catch (error) {
     logger.error('Error setting guild terms acceptance', { guildId, acceptedBy, error });
+    throw error;
+  }
+}
+
+/**
+ * Get DJ role ID for a guild
+ */
+export async function getGuildDjRole(guildId: string | null): Promise<string | null> {
+  if (!guildId) {
+    return null;
+  }
+
+  const db = initDatabase();
+
+  try {
+    const result = await db.query('SELECT dj_role_id FROM guild_settings WHERE guild_id = $1', [
+      guildId,
+    ]);
+
+    if (result.rows.length > 0 && result.rows[0].dj_role_id) {
+      return result.rows[0].dj_role_id;
+    }
+
+    return null;
+  } catch (error) {
+    logger.error('Error getting guild DJ role', { guildId, error });
+    return null;
+  }
+}
+
+/**
+ * Set DJ role ID for a guild
+ */
+export async function setGuildDjRole(guildId: string, roleId: string | null): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `INSERT INTO guild_settings (guild_id, dj_role_id, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (guild_id)
+       DO UPDATE SET dj_role_id = $2, updated_at = CURRENT_TIMESTAMP`,
+      [guildId, roleId]
+    );
+
+    logger.info('Guild DJ role updated', { guildId, roleId });
+    return true;
+  } catch (error) {
+    logger.error('Error setting guild DJ role', { guildId, roleId, error });
+    throw error;
+  }
+}
+
+/**
+ * Remove DJ role for a guild (reset to null)
+ */
+export async function resetGuildDjRole(guildId: string): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `UPDATE guild_settings SET dj_role_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE guild_id = $1`,
+      [guildId]
+    );
+
+    logger.info('Guild DJ role reset', { guildId });
+    return true;
+  } catch (error) {
+    logger.error('Error resetting guild DJ role', { guildId, error });
     throw error;
   }
 }

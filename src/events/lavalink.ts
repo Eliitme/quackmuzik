@@ -2,6 +2,7 @@ import { Client } from 'discord.js';
 import { LavalinkManager } from 'lavalink-client';
 import { logger } from '../utils/logger';
 import { savePlayHistory } from '../utils/database';
+import { clearVoteSkip } from '../utils/voteSkip';
 
 /**
  * Register all Lavalink event handlers
@@ -14,10 +15,15 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
 
   lavalinkManager.on('playerDestroy', (player, reason) => {
     logger.info('Player destroyed', { guildId: player.guildId, reason: reason || 'unknown' });
+    // Clear all vote skip data for this guild
+    clearVoteSkip(player.guildId);
   });
 
   lavalinkManager.on('trackStart', (player, track) => {
     if (track) {
+      // Clear all vote skip data for this guild when new track starts
+      clearVoteSkip(player.guildId);
+
       logger.info('Track start', {
         guildId: player.guildId,
         title: track.info.title,
