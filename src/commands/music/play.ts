@@ -2,8 +2,16 @@ import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { logger } from '../../utils/logger';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
+import {
+  getGuildLocale,
+  getGuildPrefix,
+  getGuildDjRole,
+  getGuildDjAudioSettings,
+  incrementUserRequests,
+  incrementTrackPlayCount,
+} from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
+import { applyDjAudioFilters } from '../../utils/audioFilters';
 
 export const playCommand: Command = {
   name: 'play',
@@ -96,8 +104,29 @@ export const playCommand: Command = {
         // Thêm tất cả tracks vào queue
         await player.queue.add(res.tracks);
 
+        // Track stats
+        await incrementUserRequests(message.author.id, message.guild!.id);
+        for (const track of res.tracks) {
+          if (track.info.uri && track.info.title) {
+            await incrementTrackPlayCount(
+              track.info.uri,
+              track.info.identifier || null,
+              track.info.title,
+              track.info.author || null,
+              message.guild!.id
+            );
+          }
+        }
+
         if (!player.playing) {
           await player.play();
+        }
+
+        // Apply DJ audio filters if user has DJ role
+        const djRoleId = await getGuildDjRole(message.guild!.id);
+        if (djRoleId && member?.roles.cache.has(djRoleId)) {
+          const djSettings = await getGuildDjAudioSettings(message.guild!.id);
+          await applyDjAudioFilters(player, djSettings);
         }
 
         const totalDuration = res.tracks.reduce(
@@ -129,8 +158,27 @@ export const playCommand: Command = {
         const track = res.tracks[0];
         await player.queue.add(track);
 
+        // Track stats
+        await incrementUserRequests(message.author.id, message.guild!.id);
+        if (track.info.uri && track.info.title) {
+          await incrementTrackPlayCount(
+            track.info.uri,
+            track.info.identifier || null,
+            track.info.title,
+            track.info.author || null,
+            message.guild!.id
+          );
+        }
+
         if (!player.playing) {
           await player.play();
+        }
+
+        // Apply DJ audio filters if user has DJ role
+        const djRoleId = await getGuildDjRole(message.guild!.id);
+        if (djRoleId && member?.roles.cache.has(djRoleId)) {
+          const djSettings = await getGuildDjAudioSettings(message.guild!.id);
+          await applyDjAudioFilters(player, djSettings);
         }
 
         const duration = track.info.duration || 0;

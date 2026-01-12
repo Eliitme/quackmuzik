@@ -10,12 +10,18 @@ import { queueCommand } from './music/queue';
 import { nowPlayingCommand } from './music/nowplaying';
 import { speakCommand } from './music/speak';
 import { playlistCommand } from './music/playlist';
+import { leaderboardCommand } from './music/leaderboard';
+import { rankCommand } from './music/rank';
 
 // Admin commands
 import { helpCommand } from './admin/help';
 import { prefixCommand } from './admin/prefix';
 import { localeCommand } from './admin/locale';
 import { termsCommand } from './admin/terms';
+import { djroleCommand } from './admin/djrole';
+import { mode247Command } from './admin/247mode';
+import { announceCommand } from './admin/announce';
+import { djconfigCommand } from './admin/djconfig';
 
 // System commands
 // import { debugCommand } from './system/debug'; // OPTIONAL: Uncomment to enable debug command
@@ -36,9 +42,15 @@ const commandList = [
   seekCommand,
   speakCommand,
   playlistCommand,
+  leaderboardCommand,
+  rankCommand,
   prefixCommand,
   localeCommand,
   termsCommand,
+  djroleCommand,
+  mode247Command,
+  announceCommand,
+  djconfigCommand,
   guildsCommand,
   // debugCommand, // OPTIONAL: Uncomment to enable debug command
 ];

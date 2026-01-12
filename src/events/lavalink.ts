@@ -1,7 +1,21 @@
-import { Client } from 'discord.js';
+import { Client, User } from 'discord.js';
 import { LavalinkManager } from 'lavalink-client';
 import { logger } from '../utils/logger';
-import { savePlayHistory } from '../utils/database';
+import {
+  savePlayHistory,
+  getGuild24_7Mode,
+  getGuildAnnounceTrack,
+  getGuildLocale,
+  getGuildDjRole,
+  getGuildDjAudioSettings,
+  incrementTrackPlayCount,
+  updateUserListeningTime,
+} from '../utils/database';
+import { clearVoteSkip } from '../utils/voteSkip';
+import { createEmbed } from '../utils/embed';
+import { translate, type Locale } from '../utils/i18n';
+import { formatTime } from '../utils/formatTime';
+import { applyDjAudioFilters } from '../utils/audioFilters';
 
 /**
  * Register all Lavalink event handlers
@@ -14,10 +28,15 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
 
   lavalinkManager.on('playerDestroy', (player, reason) => {
     logger.info('Player destroyed', { guildId: player.guildId, reason: reason || 'unknown' });
+    // Clear all vote skip data for this guild
+    clearVoteSkip(player.guildId);
   });
 
-  lavalinkManager.on('trackStart', (player, track) => {
+  lavalinkManager.on('trackStart', async (player, track) => {
     if (track) {
+      // Clear all vote skip data for this guild when new track starts
+      clearVoteSkip(player.guildId);
+
       logger.info('Track start', {
         guildId: player.guildId,
         title: track.info.title,
@@ -26,6 +45,103 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
         source: track.info.sourceName,
         queueSize: player.queue.tracks.length,
       });
+
+      // Apply DJ audio filters if requester has DJ role
+      try {
+        const requesterId =
+          typeof track.requester === 'string'
+            ? track.requester
+            : (track.requester as User)?.id || null;
+
+        if (requesterId) {
+          const djRoleId = await getGuildDjRole(player.guildId);
+          if (djRoleId) {
+            // Check if requester has DJ role (we need to get guild member)
+            const guild = client.guilds.cache.get(player.guildId);
+            if (guild) {
+              const member = await guild.members.fetch(requesterId).catch(() => null);
+              if (member && member.roles.cache.has(djRoleId)) {
+                const djSettings = await getGuildDjAudioSettings(player.guildId);
+                await applyDjAudioFilters(player, djSettings);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Error applying DJ filters on track start', {
+          guildId: player.guildId,
+          error,
+        });
+      }
+
+      // Announce track if enabled
+      const announceEnabled = await getGuildAnnounceTrack(player.guildId);
+      if (announceEnabled && player.textChannelId) {
+        const channel = client.channels.cache.get(player.textChannelId);
+        if (channel && 'send' in channel) {
+          try {
+            const locale = (await getGuildLocale(player.guildId)) as Locale;
+            const thumbnail =
+              track.info.artworkUrl ||
+              `https://img.youtube.com/vi/${track.info.identifier}/maxresdefault.jpg`;
+
+            const sourceText = translate(locale, 'commands.nowplaying.unknown');
+            const requesterId =
+              typeof track.requester === 'string'
+                ? track.requester
+                : (track.requester as User)?.id || null;
+
+            const embed = createEmbed({
+              title: translate(locale, 'commands.announce.now_playing'),
+              description: `**[${track.info.title}](${track.info.uri})**`,
+              color: '#00FF00',
+            })
+              .addFields(
+                {
+                  name: translate(locale, 'commands.nowplaying.author'),
+                  value: track.info.author || sourceText,
+                  inline: true,
+                },
+                {
+                  name: translate(locale, 'commands.nowplaying.duration'),
+                  value: formatTime(track.info.duration),
+                  inline: true,
+                },
+                {
+                  name: '\u200B',
+                  value: '\u200B',
+                  inline: true,
+                }
+              )
+              .setThumbnail(thumbnail);
+
+            if (requesterId) {
+              embed.addFields({
+                name: translate(locale, 'commands.nowplaying.requested_by'),
+                value: `<@${requesterId}>`,
+                inline: false,
+              });
+            }
+
+            if (player.queue.tracks.length > 0) {
+              embed.addFields({
+                name: translate(locale, 'commands.announce.queue_info'),
+                value: translate(locale, 'commands.announce.queue_count', {
+                  count: player.queue.tracks.length,
+                }),
+                inline: false,
+              });
+            }
+
+            await channel.send({ embeds: [embed] });
+          } catch (error) {
+            logger.error('Error sending track announcement', {
+              guildId: player.guildId,
+              error,
+            });
+          }
+        }
+      }
     }
   });
 
@@ -55,12 +171,80 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
           error,
         });
       });
+
+      // Track play count
+      await incrementTrackPlayCount(
+        track.info.uri,
+        track.info.identifier || null,
+        track.info.title,
+        track.info.author || null,
+        player.guildId
+      ).catch((error) => {
+        logger.error('Failed to increment track play count', {
+          guildId: player.guildId,
+          error,
+        });
+      });
+
+      // Track listening time for all users in voice channel
+      try {
+        const guild = client.guilds.cache.get(player.guildId);
+        if (guild && player.voiceChannelId) {
+          const voiceChannel = guild.channels.cache.get(player.voiceChannelId);
+          if (voiceChannel && 'members' in voiceChannel) {
+            const members = (voiceChannel as any).members;
+            const trackDurationMinutes = Math.floor((track.info.duration || 0) / 60000); // Convert ms to minutes
+
+            if (trackDurationMinutes > 0) {
+              // Update listening time for all non-bot members in voice channel
+              for (const member of members.values()) {
+                if (!member.user.bot) {
+                  await updateUserListeningTime(
+                    member.id,
+                    player.guildId,
+                    trackDurationMinutes
+                  ).catch((error) => {
+                    logger.error('Failed to update listening time', {
+                      userId: member.id,
+                      guildId: player.guildId,
+                      error,
+                    });
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Error tracking listening time', {
+          guildId: player.guildId,
+          error,
+        });
+      }
     }
 
-    // Tự động destroy player khi hết nhạc (không lưu playlist)
+    // Tự động destroy player khi hết nhạc (trừ khi 24/7 mode được bật)
     if (player.queue.tracks.length === 0) {
-      logger.info('Queue empty, destroying player', { guildId: player.guildId });
-      player.destroy();
+      // Check 24/7 mode asynchronously
+      getGuild24_7Mode(player.guildId)
+        .then((mode247) => {
+          if (mode247) {
+            logger.info('Queue empty, but 24/7 mode is enabled, keeping player alive', {
+              guildId: player.guildId,
+            });
+          } else {
+            logger.info('Queue empty, destroying player', { guildId: player.guildId });
+            player.destroy();
+          }
+        })
+        .catch((error) => {
+          logger.error('Error checking 24/7 mode when queue empty', {
+            guildId: player.guildId,
+            error,
+          });
+          // Default to destroying if error
+          player.destroy();
+        });
     }
   });
 
@@ -98,8 +282,31 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
       });
       player.skip();
     } else {
-      logger.info('No more tracks after error, destroying player', { guildId: player.guildId });
-      player.destroy();
+      // Check 24/7 mode asynchronously
+      getGuild24_7Mode(player.guildId)
+        .then((mode247) => {
+          if (mode247) {
+            logger.info(
+              'No more tracks after error, but 24/7 mode is enabled, keeping player alive',
+              {
+                guildId: player.guildId,
+              }
+            );
+          } else {
+            logger.info('No more tracks after error, destroying player', {
+              guildId: player.guildId,
+            });
+            player.destroy();
+          }
+        })
+        .catch((error) => {
+          logger.error('Error checking 24/7 mode after track error', {
+            guildId: player.guildId,
+            error,
+          });
+          // Default to destroying if error
+          player.destroy();
+        });
     }
   });
 

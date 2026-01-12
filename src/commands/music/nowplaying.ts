@@ -1,4 +1,4 @@
-import { User } from 'discord.js';
+import { User, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { createEmbedWithCustomFooter } from '../../utils/embed';
@@ -109,6 +109,62 @@ export const nowPlayingCommand: Command = {
       )
       .setThumbnail(thumbnail);
 
-    await message.reply({ embeds: [embed] });
+    // Create control buttons
+    const previousButton = new ButtonBuilder()
+      .setCustomId('np_previous')
+      .setLabel(translate(locale, 'commands.nowplaying.button_previous'))
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('⏮');
+
+    const pauseButton = new ButtonBuilder()
+      .setCustomId('np_pause')
+      .setLabel(
+        player.paused
+          ? translate(locale, 'commands.nowplaying.button_resume')
+          : translate(locale, 'commands.nowplaying.button_pause')
+      )
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji(player.paused ? '▶️' : '⏸');
+
+    const skipButton = new ButtonBuilder()
+      .setCustomId('np_skip')
+      .setLabel(translate(locale, 'commands.nowplaying.button_skip'))
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('⏭');
+
+    const loopButton = new ButtonBuilder()
+      .setCustomId('np_loop')
+      .setLabel(
+        player.repeatMode === 'queue'
+          ? translate(locale, 'commands.nowplaying.button_loop_queue')
+          : player.repeatMode === 'track'
+            ? translate(locale, 'commands.nowplaying.button_loop_track')
+            : translate(locale, 'commands.nowplaying.button_loop')
+      )
+      .setStyle(player.repeatMode === 'off' ? ButtonStyle.Secondary : ButtonStyle.Success)
+      .setEmoji('🔁');
+
+    const shuffleButton = new ButtonBuilder()
+      .setCustomId('np_shuffle')
+      .setLabel(translate(locale, 'commands.nowplaying.button_shuffle'))
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔀');
+
+    const stopButton = new ButtonBuilder()
+      .setCustomId('np_stop')
+      .setLabel(translate(locale, 'commands.nowplaying.button_stop'))
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('❌');
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      previousButton,
+      pauseButton,
+      skipButton,
+      loopButton,
+      shuffleButton,
+      stopButton
+    );
+
+    await message.reply({ embeds: [embed], components: [row] });
   },
 };
