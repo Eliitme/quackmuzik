@@ -229,6 +229,18 @@ export async function ensureSchema(): Promise<void> {
       )
     `);
 
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_likes (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(20) NOT NULL,
+        guild_id VARCHAR(20),
+        track_uri TEXT NOT NULL,
+        track_identifier TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, guild_id, track_uri)
+      )
+    `);
+
     // Indexes for leaderboard tables
     await db.query(`
       CREATE INDEX IF NOT EXISTS idx_user_stats_user_id
@@ -1409,6 +1421,165 @@ export async function incrementTrackPlayCount(
       guildId,
       error,
     });
+  }
+}
+
+/**
+ * Check if user has liked a track
+ */
+export async function hasUserLikedTrack(
+  userId: string,
+  trackUri: string,
+  guildId: string | null
+): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    const result = await db.query(
+      'SELECT id FROM user_likes WHERE user_id = $1 AND track_uri = $2 AND guild_id IS NOT DISTINCT FROM $3',
+      [userId, trackUri, guildId]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    logger.error('Error checking if user liked track', { userId, trackUri, guildId, error });
+    return false;
+  }
+}
+
+/**
+ * Like a track
+ */
+export async function likeTrack(
+  userId: string,
+  trackUri: string,
+  trackIdentifier: string | null,
+  guildId: string | null
+): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    // Check if already liked
+    const alreadyLiked = await hasUserLikedTrack(userId, trackUri, guildId);
+    if (alreadyLiked) {
+      return false; // Already liked
+    }
+
+    // Add like record
+    await db.query(
+      `INSERT INTO user_likes (user_id, guild_id, track_uri, track_identifier, created_at)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id, guild_id, track_uri) DO NOTHING`,
+      [userId, guildId, trackUri, trackIdentifier]
+    );
+
+    // Increment user total_likes
+    await db.query(
+      `INSERT INTO user_stats (user_id, guild_id, total_likes, last_active_at, updated_at)
+       VALUES ($1, $2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id, guild_id)
+       DO UPDATE SET
+         total_likes = user_stats.total_likes + 1,
+         last_active_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP`,
+      [userId, guildId]
+    );
+
+    // Increment track like_count
+    // First, get track info from track_stats or use provided info
+    await db.query(
+      `INSERT INTO track_stats (track_uri, track_identifier, guild_id, like_count, updated_at)
+       VALUES ($1, $2, $3, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT (track_uri, guild_id)
+       DO UPDATE SET
+         like_count = track_stats.like_count + 1,
+         updated_at = CURRENT_TIMESTAMP`,
+      [trackUri, trackIdentifier, guildId]
+    );
+
+    logger.info('Track liked', { userId, trackUri, guildId });
+    return true;
+  } catch (error) {
+    logger.error('Error liking track', { userId, trackUri, guildId, error });
+    throw error;
+  }
+}
+
+/**
+ * Unlike a track
+ */
+export async function unlikeTrack(
+  userId: string,
+  trackUri: string,
+  guildId: string | null
+): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    // Check if liked
+    const liked = await hasUserLikedTrack(userId, trackUri, guildId);
+    if (!liked) {
+      return false; // Not liked
+    }
+
+    // Remove like record
+    const deleteResult = await db.query(
+      'DELETE FROM user_likes WHERE user_id = $1 AND track_uri = $2 AND guild_id IS NOT DISTINCT FROM $3',
+      [userId, trackUri, guildId]
+    );
+
+    if (deleteResult.rowCount === 0) {
+      return false;
+    }
+
+    // Decrement user total_likes
+    await db.query(
+      `UPDATE user_stats
+       SET total_likes = GREATEST(0, total_likes - 1),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND guild_id IS NOT DISTINCT FROM $2`,
+      [userId, guildId]
+    );
+
+    // Decrement track like_count
+    await db.query(
+      `UPDATE track_stats
+       SET like_count = GREATEST(0, like_count - 1),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE track_uri = $1 AND guild_id IS NOT DISTINCT FROM $2`,
+      [trackUri, guildId]
+    );
+
+    logger.info('Track unliked', { userId, trackUri, guildId });
+    return true;
+  } catch (error) {
+    logger.error('Error unliking track', { userId, trackUri, guildId, error });
+    throw error;
+  }
+}
+
+/**
+ * Get track likes count
+ */
+export async function getTrackLikes(
+  trackUri: string,
+  guildId: string | null
+): Promise<number> {
+  const db = initDatabase();
+
+  try {
+    const result = await db.query(
+      'SELECT like_count FROM track_stats WHERE track_uri = $1 AND guild_id IS NOT DISTINCT FROM $2',
+      [trackUri, guildId]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows[0].like_count || 0;
+    }
+
+    return 0;
+  } catch (error) {
+    logger.error('Error getting track likes', { trackUri, guildId, error });
+    return 0;
   }
 }
 

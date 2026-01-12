@@ -84,6 +84,7 @@
       "button_loop_queue": "Loop Queue",
       "button_loop_track": "Loop Track",
       "button_shuffle": "Shuffle",
+      "button_like": "Like ({count})",
       "button_stop": "Stop",
       "guild_only": "❌ This command can only be used in a server!",
       "no_voice": "❌ You must be in a voice channel to use this!",
@@ -356,6 +357,21 @@
       "last_active": "Last active: {date}",
       "no_stats_self": "You don't have any stats yet. Start playing music to see your ranking!",
       "no_stats_other": "This user doesn't have any stats yet."
+    },
+    "like": {
+      "name": "like",
+      "description": "Like or unlike the currently playing track",
+      "usage": "like",
+      "no_voice": "❌ You must be in a voice channel to use this command!",
+      "not_playing": "❌ No song is currently playing!",
+      "same_voice_channel": "❌ You must be in the same voice channel as the bot!",
+      "liked_title": "❤️ Liked",
+      "liked_description": "You liked **{title}**\n❤️ **{likes}** likes",
+      "liked": "❤️ You liked **{title}**\n❤️ **{likes}** likes",
+      "unliked_title": "🤍 Unliked",
+      "unliked_description": "You unliked **{title}**\n❤️ **{likes}** likes",
+      "unliked": "🤍 You unliked **{title}**\n❤️ **{likes}** likes",
+      "error": "❌ An error occurred while liking/unliking the track!"
     },
     "playlist": {
       "name": "playlist",
