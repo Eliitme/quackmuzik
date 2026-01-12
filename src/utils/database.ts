@@ -118,6 +118,21 @@ export async function ensureSchema(): Promise<void> {
       END $$;
     `);
 
+    // Add dj_audio_settings column to existing guild_settings table if it doesn't exist
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'guild_settings'
+          AND column_name = 'dj_audio_settings'
+        ) THEN
+          ALTER TABLE guild_settings
+          ADD COLUMN dj_audio_settings JSONB DEFAULT '{}'::jsonb;
+        END IF;
+      END $$;
+    `);
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS play_history (
         id SERIAL PRIMARY KEY,
@@ -1049,6 +1064,71 @@ export async function setGuildAnnounceTrack(guildId: string, enabled: boolean): 
     return true;
   } catch (error) {
     logger.error('Error setting guild announce track', { guildId, enabled, error });
+    throw error;
+  }
+}
+
+/**
+ * DJ Audio Settings Interface
+ */
+export interface DjAudioSettings {
+  bassboost?: boolean;
+  nightcore?: boolean;
+  lofi?: boolean;
+  vaporwave?: boolean;
+  volumeNormalization?: boolean;
+  audio8d?: boolean;
+}
+
+/**
+ * Get DJ audio settings for a guild
+ */
+export async function getGuildDjAudioSettings(guildId: string | null): Promise<DjAudioSettings> {
+  if (!guildId) {
+    return {};
+  }
+
+  const db = initDatabase();
+
+  try {
+    const result = await db.query(
+      'SELECT dj_audio_settings FROM guild_settings WHERE guild_id = $1',
+      [guildId]
+    );
+
+    if (result.rows.length > 0 && result.rows[0].dj_audio_settings) {
+      return result.rows[0].dj_audio_settings as DjAudioSettings;
+    }
+
+    return {}; // Default: no filters
+  } catch (error) {
+    logger.error('Error getting guild DJ audio settings', { guildId, error });
+    return {};
+  }
+}
+
+/**
+ * Set DJ audio settings for a guild
+ */
+export async function setGuildDjAudioSettings(
+  guildId: string,
+  settings: DjAudioSettings
+): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `INSERT INTO guild_settings (guild_id, dj_audio_settings, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (guild_id)
+       DO UPDATE SET dj_audio_settings = $2, updated_at = CURRENT_TIMESTAMP`,
+      [guildId, JSON.stringify(settings)]
+    );
+
+    logger.info('Guild DJ audio settings updated', { guildId, settings });
+    return true;
+  } catch (error) {
+    logger.error('Error setting guild DJ audio settings', { guildId, settings, error });
     throw error;
   }
 }

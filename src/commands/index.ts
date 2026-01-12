@@ -19,6 +19,7 @@ import { termsCommand } from './admin/terms';
 import { djroleCommand } from './admin/djrole';
 import { mode247Command } from './admin/247mode';
 import { announceCommand } from './admin/announce';
+import { djconfigCommand } from './admin/djconfig';
 
 // System commands
 // import { debugCommand } from './system/debug'; // OPTIONAL: Uncomment to enable debug command
@@ -45,6 +46,7 @@ const commandList = [
   djroleCommand,
   mode247Command,
   announceCommand,
+  djconfigCommand,
   guildsCommand,
   // debugCommand, // OPTIONAL: Uncomment to enable debug command
 ];

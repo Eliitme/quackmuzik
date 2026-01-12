@@ -258,6 +258,28 @@
       "invalid_value": "❌ Giá trị không hợp lệ! Sử dụng `on` hoặc `off` để bật/tắt chế độ 24/7.",
       "error": "❌ Có lỗi xảy ra khi cập nhật chế độ 24/7!"
     },
+    "djconfig": {
+      "name": "djconfig",
+      "description": "Cấu hình bộ lọc âm thanh và hiệu ứng cho role DJ",
+      "usage": "djconfig [filter] [on|off]",
+      "current_title": "🎛️ Cấu hình Audio DJ",
+      "current_description": "Cấu hình bộ lọc âm thanh và hiệu ứng sẽ được áp dụng khi người dùng có role DJ phát nhạc.",
+      "bassboost": "🔊 Bassboost",
+      "nightcore": "⚡ Nightcore",
+      "lofi": "🎧 Lo-fi",
+      "vaporwave": "🌴 Vaporwave",
+      "volume_normalization": "📊 Chuẩn hóa Âm lượng",
+      "audio8d": "🌀 8D Audio",
+      "how_to_configure": "💡 Cách Cấu hình",
+      "config_instruction": "Sử dụng `{prefix}djconfig <filter> <on|off>` để bật/tắt filters\n\nCác filters có sẵn:\n• `bassboost` - Tăng tần số bass\n• `nightcore` - Tăng tốc độ và pitch\n• `lofi` - Giảm tốc độ với hiệu ứng lo-fi\n• `vaporwave` - Giảm tốc độ đáng kể với hiệu ứng vaporwave\n• `volume-normalization` - Chuẩn hóa mức âm lượng\n• `8d` - Hiệu ứng xoay 8D audio",
+      "enabled_title": "✅ Đã bật Filter",
+      "enabled_message": "Filter **{filter}** đã được bật. Nó sẽ được áp dụng khi người dùng có role DJ phát nhạc.",
+      "disabled_title": "❌ Đã tắt Filter",
+      "disabled_message": "Filter **{filter}** đã được tắt.",
+      "invalid_value": "❌ Giá trị không hợp lệ! Sử dụng `on` hoặc `off` để bật/tắt filters.",
+      "invalid_filter": "❌ Filter không hợp lệ! Sử dụng `{prefix}djconfig` để xem các filters có sẵn.",
+      "error": "❌ Có lỗi xảy ra khi cập nhật cấu hình audio DJ!"
+    },
     "djrole": {
       "name": "djrole",
       "description": "Xem hoặc đặt role DJ để bỏ qua vote skip",

@@ -2,8 +2,14 @@ import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { logger } from '../../utils/logger';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
+import {
+  getGuildLocale,
+  getGuildPrefix,
+  getGuildDjRole,
+  getGuildDjAudioSettings,
+} from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
+import { applyDjAudioFilters } from '../../utils/audioFilters';
 
 export const playCommand: Command = {
   name: 'play',
@@ -100,6 +106,13 @@ export const playCommand: Command = {
           await player.play();
         }
 
+        // Apply DJ audio filters if user has DJ role
+        const djRoleId = await getGuildDjRole(message.guild!.id);
+        if (djRoleId && member?.roles.cache.has(djRoleId)) {
+          const djSettings = await getGuildDjAudioSettings(message.guild!.id);
+          await applyDjAudioFilters(player, djSettings);
+        }
+
         const totalDuration = res.tracks.reduce(
           (acc, track) => acc + (track.info.duration || 0),
           0
@@ -131,6 +144,13 @@ export const playCommand: Command = {
 
         if (!player.playing) {
           await player.play();
+        }
+
+        // Apply DJ audio filters if user has DJ role
+        const djRoleId = await getGuildDjRole(message.guild!.id);
+        if (djRoleId && member?.roles.cache.has(djRoleId)) {
+          const djSettings = await getGuildDjAudioSettings(message.guild!.id);
+          await applyDjAudioFilters(player, djSettings);
         }
 
         const duration = track.info.duration || 0;

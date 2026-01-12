@@ -258,6 +258,28 @@
       "invalid_value": "❌ Invalid value! Use `on` or `off` to toggle 24/7 mode.",
       "error": "❌ An error occurred while updating 24/7 mode!"
     },
+    "djconfig": {
+      "name": "djconfig",
+      "description": "Configure audio filters and effects for DJ role",
+      "usage": "djconfig [filter] [on|off]",
+      "current_title": "🎛️ DJ Audio Configuration",
+      "current_description": "Configure audio filters and effects that will be applied when DJ role users play tracks.",
+      "bassboost": "🔊 Bassboost",
+      "nightcore": "⚡ Nightcore",
+      "lofi": "🎧 Lo-fi",
+      "vaporwave": "🌴 Vaporwave",
+      "volume_normalization": "📊 Volume Normalization",
+      "audio8d": "🌀 8D Audio",
+      "how_to_configure": "💡 How to Configure",
+      "config_instruction": "Use `{prefix}djconfig <filter> <on|off>` to toggle filters\n\nAvailable filters:\n• `bassboost` - Increase bass frequencies\n• `nightcore` - Speed up and pitch up\n• `lofi` - Slow down with lo-fi effect\n• `vaporwave` - Slow down significantly with vaporwave effect\n• `volume-normalization` - Normalize volume levels\n• `8d` - 8D audio rotation effect",
+      "enabled_title": "✅ Filter Enabled",
+      "enabled_message": "**{filter}** filter has been enabled. It will be applied when DJ role users play tracks.",
+      "disabled_title": "❌ Filter Disabled",
+      "disabled_message": "**{filter}** filter has been disabled.",
+      "invalid_value": "❌ Invalid value! Use `on` or `off` to toggle filters.",
+      "invalid_filter": "❌ Invalid filter! Use `{prefix}djconfig` to see available filters.",
+      "error": "❌ An error occurred while updating DJ audio configuration!"
+    },
     "djrole": {
       "name": "djrole",
       "description": "View or set DJ role for vote skip bypass",

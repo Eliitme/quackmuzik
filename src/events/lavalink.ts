@@ -6,11 +6,14 @@ import {
   getGuild24_7Mode,
   getGuildAnnounceTrack,
   getGuildLocale,
+  getGuildDjRole,
+  getGuildDjAudioSettings,
 } from '../utils/database';
 import { clearVoteSkip } from '../utils/voteSkip';
 import { createEmbed } from '../utils/embed';
 import { translate, type Locale } from '../utils/i18n';
 import { formatTime } from '../utils/formatTime';
+import { applyDjAudioFilters } from '../utils/audioFilters';
 
 /**
  * Register all Lavalink event handlers
@@ -40,6 +43,34 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
         source: track.info.sourceName,
         queueSize: player.queue.tracks.length,
       });
+
+      // Apply DJ audio filters if requester has DJ role
+      try {
+        const requesterId =
+          typeof track.requester === 'string'
+            ? track.requester
+            : (track.requester as User)?.id || null;
+
+        if (requesterId) {
+          const djRoleId = await getGuildDjRole(player.guildId);
+          if (djRoleId) {
+            // Check if requester has DJ role (we need to get guild member)
+            const guild = client.guilds.cache.get(player.guildId);
+            if (guild) {
+              const member = await guild.members.fetch(requesterId).catch(() => null);
+              if (member && member.roles.cache.has(djRoleId)) {
+                const djSettings = await getGuildDjAudioSettings(player.guildId);
+                await applyDjAudioFilters(player, djSettings);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Error applying DJ filters on track start', {
+          guildId: player.guildId,
+          error,
+        });
+      }
 
       // Announce track if enabled
       const announceEnabled = await getGuildAnnounceTrack(player.guildId);
