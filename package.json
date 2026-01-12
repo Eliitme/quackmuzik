@@ -1,6 +1,6 @@
 {
   "name": "quackmuzik",
-  "version": "1.0.14",
+  "version": "1.1.0",
   "description": "Discord music bot with Lavalink",
   "main": "dist/index.js",
   "scripts": {
@@ -10,7 +10,13 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "watch": "tsc -w",
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,js,json}\""
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "release:patch": "bash scripts/release.sh patch",
+    "release:minor": "bash scripts/release.sh minor",
+    "release:major": "bash scripts/release.sh major",
+    "release:patch:dev": "bash scripts/release.sh patch development",
+    "release:minor:dev": "bash scripts/release.sh minor development",
+    "release:major:dev": "bash scripts/release.sh major development"
   },
   "keywords": [
     "discord",
