@@ -103,6 +103,21 @@ export async function ensureSchema(): Promise<void> {
       END $$;
     `);
 
+    // Add announce_track column to existing guild_settings table if it doesn't exist
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'guild_settings'
+          AND column_name = 'announce_track'
+        ) THEN
+          ALTER TABLE guild_settings
+          ADD COLUMN announce_track BOOLEAN DEFAULT true;
+        END IF;
+      END $$;
+    `);
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS play_history (
         id SERIAL PRIMARY KEY,
@@ -985,6 +1000,55 @@ export async function setGuild24_7Mode(guildId: string, enabled: boolean): Promi
     return true;
   } catch (error) {
     logger.error('Error setting guild 24/7 mode', { guildId, enabled, error });
+    throw error;
+  }
+}
+
+/**
+ * Get announce track setting for a guild
+ */
+export async function getGuildAnnounceTrack(guildId: string | null): Promise<boolean> {
+  if (!guildId) {
+    return true; // Default: announce is on
+  }
+
+  const db = initDatabase();
+
+  try {
+    const result = await db.query('SELECT announce_track FROM guild_settings WHERE guild_id = $1', [
+      guildId,
+    ]);
+
+    if (result.rows.length > 0 && result.rows[0].announce_track !== null) {
+      return result.rows[0].announce_track === true;
+    }
+
+    return true; // Default: announce is on
+  } catch (error) {
+    logger.error('Error getting guild announce track setting', { guildId, error });
+    return true; // Default: announce is on
+  }
+}
+
+/**
+ * Set announce track setting for a guild
+ */
+export async function setGuildAnnounceTrack(guildId: string, enabled: boolean): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `INSERT INTO guild_settings (guild_id, announce_track, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (guild_id)
+       DO UPDATE SET announce_track = $2, updated_at = CURRENT_TIMESTAMP`,
+      [guildId, enabled]
+    );
+
+    logger.info('Guild announce track setting updated', { guildId, enabled });
+    return true;
+  } catch (error) {
+    logger.error('Error setting guild announce track', { guildId, enabled, error });
     throw error;
   }
 }

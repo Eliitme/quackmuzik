@@ -1,8 +1,16 @@
-import { Client } from 'discord.js';
+import { Client, User } from 'discord.js';
 import { LavalinkManager } from 'lavalink-client';
 import { logger } from '../utils/logger';
-import { savePlayHistory, getGuild24_7Mode } from '../utils/database';
+import {
+  savePlayHistory,
+  getGuild24_7Mode,
+  getGuildAnnounceTrack,
+  getGuildLocale,
+} from '../utils/database';
 import { clearVoteSkip } from '../utils/voteSkip';
+import { createEmbed } from '../utils/embed';
+import { translate, type Locale } from '../utils/i18n';
+import { formatTime } from '../utils/formatTime';
 
 /**
  * Register all Lavalink event handlers
@@ -19,7 +27,7 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
     clearVoteSkip(player.guildId);
   });
 
-  lavalinkManager.on('trackStart', (player, track) => {
+  lavalinkManager.on('trackStart', async (player, track) => {
     if (track) {
       // Clear all vote skip data for this guild when new track starts
       clearVoteSkip(player.guildId);
@@ -32,6 +40,75 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
         source: track.info.sourceName,
         queueSize: player.queue.tracks.length,
       });
+
+      // Announce track if enabled
+      const announceEnabled = await getGuildAnnounceTrack(player.guildId);
+      if (announceEnabled && player.textChannelId) {
+        const channel = client.channels.cache.get(player.textChannelId);
+        if (channel && 'send' in channel) {
+          try {
+            const locale = (await getGuildLocale(player.guildId)) as Locale;
+            const thumbnail =
+              track.info.artworkUrl ||
+              `https://img.youtube.com/vi/${track.info.identifier}/maxresdefault.jpg`;
+
+            const sourceText = translate(locale, 'commands.nowplaying.unknown');
+            const requesterId =
+              typeof track.requester === 'string'
+                ? track.requester
+                : (track.requester as User)?.id || null;
+
+            const embed = createEmbed({
+              title: translate(locale, 'commands.announce.now_playing'),
+              description: `**[${track.info.title}](${track.info.uri})**`,
+              color: '#00FF00',
+            })
+              .addFields(
+                {
+                  name: translate(locale, 'commands.nowplaying.author'),
+                  value: track.info.author || sourceText,
+                  inline: true,
+                },
+                {
+                  name: translate(locale, 'commands.nowplaying.duration'),
+                  value: formatTime(track.info.duration),
+                  inline: true,
+                },
+                {
+                  name: '\u200B',
+                  value: '\u200B',
+                  inline: true,
+                }
+              )
+              .setThumbnail(thumbnail);
+
+            if (requesterId) {
+              embed.addFields({
+                name: translate(locale, 'commands.nowplaying.requested_by'),
+                value: `<@${requesterId}>`,
+                inline: false,
+              });
+            }
+
+            if (player.queue.tracks.length > 0) {
+              embed.addFields({
+                name: translate(locale, 'commands.announce.queue_info'),
+                value: translate(locale, 'commands.announce.queue_count', {
+                  count: player.queue.tracks.length,
+                }),
+                inline: false,
+              });
+            }
+
+            await channel.send({ embeds: [embed] });
+          } catch (error) {
+            logger.error('Error sending track announcement', {
+              guildId: player.guildId,
+              error,
+            });
+          }
+        }
+      }
     }
   });
 
