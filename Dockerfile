@@ -12,8 +12,7 @@ COPY package*.json ./
 # This allows GitHub Actions to cache node_modules between builds
 RUN --mount=type=cache,target=/root/.npm \
     npm config set cache /root/.npm --global && \
-    npm ci --only=production --prefer-offline --no-audit && \
-    npm cache clean --force
+    npm ci --only=production --no-audit
 
 # ============================================
 # Stage 2: Build
@@ -29,8 +28,7 @@ COPY tsconfig.json ./
 # Install all dependencies (including devDependencies for build)
 RUN --mount=type=cache,target=/root/.npm \
     npm config set cache /root/.npm --global && \
-    npm ci --prefer-offline --no-audit && \
-    npm cache clean --force
+    npm ci --no-audit
 
 # Copy source code
 COPY src ./src
