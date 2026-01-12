@@ -5,6 +5,7 @@ import { registerRawEvent } from './raw';
 import { registerMessageCreateEvent } from './messageCreate';
 import { registerLavalinkEvents } from './lavalink';
 import { registerInteractionCreateEvent } from './interactionCreate';
+import { registerVoiceStateUpdateEvent } from './voiceStateUpdate';
 
 /**
  * Register all event handlers
@@ -15,4 +16,5 @@ export function registerEvents(client: Client, lavalinkManager: LavalinkManager)
   registerMessageCreateEvent(client, lavalinkManager);
   registerLavalinkEvents(client, lavalinkManager);
   registerInteractionCreateEvent(client, lavalinkManager);
+  registerVoiceStateUpdateEvent(client, lavalinkManager);
 }

@@ -9,7 +9,10 @@ import {
   getGuildDjRole,
   getGuildDjAudioSettings,
   incrementTrackPlayCount,
-  updateUserListeningTime,
+  createListeningSession,
+  getActiveListeningSession,
+  updateListeningSessionWithTrack,
+  endAllActiveSessionsInChannel,
 } from '../utils/database';
 import { clearVoteSkip } from '../utils/voteSkip';
 import { createEmbed } from '../utils/embed';
@@ -26,10 +29,27 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
     logger.info('Player created', { guildId: player.guildId });
   });
 
-  lavalinkManager.on('playerDestroy', (player, reason) => {
+  lavalinkManager.on('playerDestroy', async (player, reason) => {
     logger.info('Player destroyed', { guildId: player.guildId, reason: reason || 'unknown' });
     // Clear all vote skip data for this guild
     clearVoteSkip(player.guildId);
+
+    // End all active listening sessions in the voice channel
+    if (player.voiceChannelId) {
+      try {
+        await endAllActiveSessionsInChannel(player.guildId, player.voiceChannelId);
+        logger.debug('Ended all active listening sessions on player destroy', {
+          guildId: player.guildId,
+          voiceChannelId: player.voiceChannelId,
+        });
+      } catch (error) {
+        logger.error('Error ending active listening sessions on player destroy', {
+          guildId: player.guildId,
+          voiceChannelId: player.voiceChannelId,
+          error,
+        });
+      }
+    }
   });
 
   lavalinkManager.on('trackStart', async (player, track) => {
@@ -142,6 +162,79 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
           }
         }
       }
+
+      // Create listening sessions for all users in voice channel when track starts
+      try {
+        const guild = client.guilds.cache.get(player.guildId);
+        if (guild && player.voiceChannelId) {
+          const voiceChannel = guild.channels.cache.get(player.voiceChannelId);
+          if (voiceChannel && 'members' in voiceChannel) {
+            const members = (voiceChannel as any).members;
+
+            // Create or ensure listening session exists for all non-bot members
+            // CRITICAL: Only create sessions for users in the SAME channel as bot
+            for (const member of members.values()) {
+              if (!member.user.bot) {
+                // Verify user is actually in bot's voice channel
+                if (member.voice.channel?.id !== player.voiceChannelId) {
+                  logger.debug('Skipping user on track start - not in bot channel', {
+                    userId: member.id,
+                    guildId: player.guildId,
+                    userChannelId: member.voice.channel?.id,
+                    botChannelId: player.voiceChannelId,
+                  });
+                  continue;
+                }
+
+                try {
+                  // Check if user already has an active session in this channel
+                  const activeSessionId = await getActiveListeningSession(
+                    member.id,
+                    player.guildId,
+                    player.voiceChannelId
+                  );
+
+                  if (!activeSessionId) {
+                    // Create new session if none exists for this channel
+                    const sessionId = await createListeningSession(
+                      member.id,
+                      player.guildId,
+                      player.voiceChannelId
+                    );
+                    if (sessionId > 0) {
+                      logger.debug('Listening session created on track start', {
+                        userId: member.id,
+                        guildId: player.guildId,
+                        voiceChannelId: player.voiceChannelId,
+                        sessionId,
+                      });
+                    }
+                  } else {
+                    logger.debug('User already has active session on track start', {
+                      userId: member.id,
+                      guildId: player.guildId,
+                      voiceChannelId: player.voiceChannelId,
+                      sessionId: activeSessionId,
+                    });
+                  }
+                } catch (error) {
+                  logger.error('Error creating listening session on track start', {
+                    userId: member.id,
+                    guildId: player.guildId,
+                    voiceChannelId: player.voiceChannelId,
+                    error,
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Error tracking listening sessions on track start', {
+          guildId: player.guildId,
+          error,
+        });
+      }
     }
   });
 
@@ -186,7 +279,8 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
         });
       });
 
-      // Track listening time for all users in voice channel
+      // Update listening sessions with track duration
+      // Only users with active sessions (who were in channel during track) get credit
       try {
         const guild = client.guilds.cache.get(player.guildId);
         if (guild && player.voiceChannelId) {
@@ -196,27 +290,84 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
             const trackDurationMinutes = Math.floor((track.info.duration || 0) / 60000); // Convert ms to minutes
 
             if (trackDurationMinutes > 0) {
-              // Update listening time for all non-bot members in voice channel
+              // Update listening sessions for all non-bot members currently in channel
+              // CRITICAL: Only update sessions for users who are in the SAME channel as bot
+              // Verify each user is actually in the bot's voice channel
               for (const member of members.values()) {
                 if (!member.user.bot) {
-                  await updateUserListeningTime(
-                    member.id,
-                    player.guildId,
-                    trackDurationMinutes
-                  ).catch((error) => {
-                    logger.error('Failed to update listening time', {
+                  // Double-check: user must be in the same channel as bot
+                  if (member.voice.channel?.id !== player.voiceChannelId) {
+                    logger.debug('Skipping user - not in bot channel', {
                       userId: member.id,
                       guildId: player.guildId,
+                      userChannelId: member.voice.channel?.id,
+                      botChannelId: player.voiceChannelId,
+                    });
+                    continue;
+                  }
+
+                  try {
+                    // Get active session for this specific voice channel
+                    const activeSessionId = await getActiveListeningSession(
+                      member.id,
+                      player.guildId,
+                      player.voiceChannelId
+                    );
+
+                    if (activeSessionId) {
+                      // User has active session in bot's channel, update it with track duration
+                      await updateListeningSessionWithTrack(activeSessionId, trackDurationMinutes);
+                      logger.debug('Updated listening session with track duration', {
+                        userId: member.id,
+                        guildId: player.guildId,
+                        voiceChannelId: player.voiceChannelId,
+                        sessionId: activeSessionId,
+                        trackDurationMinutes,
+                      });
+                    } else {
+                      // User joined mid-track but is now in bot's channel
+                      // Create session now (they'll get partial credit)
+                      const sessionId = await createListeningSession(
+                        member.id,
+                        player.guildId,
+                        player.voiceChannelId
+                      );
+                      if (sessionId > 0) {
+                        // Estimate remaining time (rough approximation)
+                        // We don't know exact position, so we'll use a conservative estimate
+                        // This is better than giving full credit
+                        const estimatedRemainingMinutes = Math.max(
+                          1,
+                          Math.floor(trackDurationMinutes * 0.3)
+                        );
+                        await updateListeningSessionWithTrack(sessionId, estimatedRemainingMinutes);
+                        logger.debug(
+                          'Created late listening session for user who joined mid-track',
+                          {
+                            userId: member.id,
+                            guildId: player.guildId,
+                            voiceChannelId: player.voiceChannelId,
+                            sessionId,
+                            estimatedRemainingMinutes,
+                          }
+                        );
+                      }
+                    }
+                  } catch (error) {
+                    logger.error('Failed to update listening session', {
+                      userId: member.id,
+                      guildId: player.guildId,
+                      voiceChannelId: player.voiceChannelId,
                       error,
                     });
-                  });
+                  }
                 }
               }
             }
           }
         }
       } catch (error) {
-        logger.error('Error tracking listening time', {
+        logger.error('Error tracking listening sessions', {
           guildId: player.guildId,
           error,
         });
