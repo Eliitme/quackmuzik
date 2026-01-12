@@ -1,0 +1,944 @@
+import { strict } from "assert"
+import { debug, error } from "console"
+import { Channel, channel } from "diagnostics_channel"
+import { Guild, Embed, Constants } from "discord.js"
+import { promises } from "dns"
+import { create } from "domain"
+import { on } from "events"
+import { get, Server } from "http"
+import { connect } from "http2"
+import { register } from "module"
+import { only, after } from "node:test"
+import { Client } from "pg"
+import { disconnect } from "process"
+import { Interface } from "readline"
+
+# QuackMuzik Bot - Cursor Rules
+
+## Architecture Overview
+
+Discord music bot using:
+- **Discord.js** for Discord API
+- **Lavalink Client** for music playback
+- **PostgreSQL** for database (prefix, locale settings)
+- **TypeScript** with strict typing
+- **i18n** supporting multiple languages (vi, en)
+
+---
+
+## 1. Creating New Commands
+
+### Command Structure
+
+Each command must follow the `Command` interface from `src/types/Command.ts`:
+
+```typescript
+import { Command } from '../../types/Command';
+import { PermissionFlagsBits } from 'discord.js';
+
+export const myCommand: Command = {
+  name: 'commandname',
+  description: 'Short description',
+  usage: 'commandname [args]',
+  aliases: ['alias1', 'alias2'], // Optional
+  category: 'music', // Required: 'music' | 'admin' | 'system'
+  requiredPermissions: [PermissionFlagsBits.ManageGuild], // Optional: Required permissions
+  guildOnly: true, // Optional: If true, command only works in guilds
+  cooldown: 5, // Optional: Cooldown in seconds (default: 10, set 0 to disable)
+
+  async execute({ message, args, lavalinkManager }) {
+    // Implementation
+  },
+};
+```
+
+### Command Creation Rules
+
+1. **File location**: Place in `src/commands/{category}/` with filename matching command name (lowercase, kebab-case if needed)
+   - `src/commands/music/` - Music commands
+   - `src/commands/admin/` - Admin commands
+   - `src/commands/system/` - System commands
+2. **Export**: Export command object with name `{commandName}Command` (camelCase)
+3. **Import and register**: Add to `src/commands/index.ts`:
+   ```typescript
+   // Music commands
+   import { myCommand } from './music/mycommand';
+
+   // Admin commands
+   import { myCommand } from './admin/mycommand';
+
+   // System commands
+   import { myCommand } from './system/mycommand';
+
+   const commandList = [
+     // ... existing commands
+     myCommand,
+   ];
+   ```
+
+### Pattern for Commands with i18n
+
+```typescript
+import { Command } from '../../types/Command';
+import { getGuildLocale } from '../../utils/database';
+import { translate, getTranslations, type Locale } from '../../utils/i18n';
+import { createEmbed } from '../../utils/embed';
+
+export const myCommand: Command = {
+  name: 'mycommand',
+  description: 'Description', // Can hardcode or use i18n later
+  usage: 'mycommand [args]',
+
+  async execute({ message, args, lavalinkManager }) {
+    // 1. Get locale from database
+    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
+
+    // 2. Get translations for command namespace (optional, if need many keys)
+    const cmdT = getTranslations(locale, 'commands.mycommand');
+
+    // 3. Use translate() for single key
+    if (!args.length) {
+      await message.reply(translate(locale, 'commands.mycommand.no_args'));
+      return;
+    }
+
+    // 4. Use with params
+    await message.reply(
+      translate(locale, 'commands.mycommand.success', {
+        count: args.length
+      })
+    );
+  },
+};
+```
+
+### Error Handling in Commands
+
+```typescript
+try {
+  // Command logic
+} catch (error) {
+  logger.error('Error in mycommand', {
+    error,
+    guildId: message.guild?.id,
+    userId: message.author.id
+  });
+
+  await message.reply(
+    translate(locale, 'commands.mycommand.error')
+  );
+}
+```
+
+### Commands with Permissions and Guild-Only
+
+**Note**: Permission checks and guild-only checks are handled automatically by command handler. You only need to declare in command definition:
+
+```typescript
+import { PermissionFlagsBits } from 'discord.js';
+import { Command } from '../../types/Command';
+
+export const adminCommand: Command = {
+  name: 'admincommand',
+  description: 'Admin only command',
+  usage: 'admincommand [args]',
+  requiredPermissions: [PermissionFlagsBits.ManageGuild], // Required permissions
+  guildOnly: true, // Only works in guilds
+  cooldown: 5, // 5 seconds cooldown
+  // ... execute
+};
+```
+
+**No manual check needed** in execute function - command handler will automatically:
+- Check `guildOnly` and return error if used in DM
+- Check `requiredPermissions` and return error if lacks permissions
+- Check `cooldown` and return error if on cooldown
+
+### Validation Pattern (for logic in command)
+
+```typescript
+// Check voice channel (still need manual check as no field in Command interface)
+const voiceChannel = message.member?.voice.channel;
+if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
+  await message.reply(translate(locale, 'commands.mycommand.no_voice'));
+  return;
+}
+
+// Check player state
+const player = lavalinkManager.getPlayer(message.guild!.id);
+if (!player || !player.queue.current) {
+  await message.reply(translate(locale, 'commands.mycommand.not_playing'));
+  return;
+}
+```
+
+---
+
+## 2. Internationalization (i18n)
+
+### Translation Files Structure
+
+Translation files located in `src/locales/`:
+- `en.json` - English
+- `vi.json` - Vietnamese
+
+### JSON Structure
+
+```json
+{
+  "commands": {
+    "commandname": {
+      "name": "commandname",
+      "description": "Description",
+      "usage": "commandname [args]",
+      "key1": "Message text",
+      "key2": "Message with {param} placeholder"
+    }
+  },
+  "common": {
+    "footer": "Common footer text",
+    "prefix_label": "Prefix: {prefix}"
+  }
+}
+```
+
+### i18n Rules
+
+1. **Namespace**: Each command has its own namespace `commands.{commandname}`
+2. **Keys**: Use snake_case for keys (e.g., `no_voice`, `invalid_format`)
+3. **Placeholders**: Use `{paramName}` for dynamic values
+4. **Required keys**: Each command should have:
+   - `name`, `description`, `usage` (for help command)
+   - Error messages (e.g., `not_playing`, `no_voice`, `error`)
+   - Success messages (e.g., `success`, `updated`)
+
+### Using i18n in Code
+
+```typescript
+// Single translation
+translate(locale, 'commands.mycommand.key')
+
+// With parameters
+translate(locale, 'commands.mycommand.key', {
+  param1: 'value1',
+  param2: 123
+})
+
+// Get all translations for namespace
+const cmdT = getTranslations(locale, 'commands.mycommand');
+// Access: cmdT.key1, cmdT.key2
+
+// Type safety
+import type { Locale } from '../../utils/i18n';
+const locale: Locale = 'vi' | 'en';
+```
+
+### When Adding New Commands
+
+1. **Add translations** to both `en.json` and `vi.json`:
+   ```json
+   {
+     "commands": {
+       "newcommand": {
+         "name": "newcommand",
+         "description": "Description",
+         "usage": "newcommand [args]",
+         "key1": "Message 1",
+         "key2": "Message 2 with {param}"
+       }
+     }
+   }
+   ```
+
+2. **Ensure both files** (en.json and vi.json) have the same structure
+3. **Use translate()** instead of hardcoding strings
+
+---
+
+## 3. Database Utilities
+
+### Available Functions
+
+From `src/utils/database.ts`:
+
+```typescript
+// Prefix management
+getGuildPrefix(guildId: string | null, defaultPrefix?: string): Promise<string>
+setGuildPrefix(guildId: string, prefix: string): Promise<boolean>
+resetGuildPrefix(guildId: string): Promise<boolean>
+
+// Locale management
+getGuildLocale(guildId: string | null, defaultLocale?: string): Promise<string>
+setGuildLocale(guildId: string, locale: string): Promise<boolean>
+```
+
+### Usage Pattern
+
+```typescript
+import { getGuildLocale, getGuildPrefix, setGuildLocale } from '../../utils/database';
+
+// Get locale (always use in commands)
+const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
+
+// Get prefix (if need to display in message)
+const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
+
+// Set locale (with validation)
+try {
+  await setGuildLocale(guildId, 'en');
+} catch (error) {
+  logger.error('Error setting locale', { error });
+}
+```
+
+---
+
+## 4. Embed Creation
+
+### Available Functions
+
+From `src/utils/embed.ts`:
+
+```typescript
+// Basic embed with default footer
+createEmbed(options?: {
+  title?: string;
+  description?: string;
+  color?: ColorResolvable;
+  footer?: string;
+  timestamp?: boolean;
+}): EmbedBuilder
+
+// Embed with custom footer (append to default)
+createEmbedWithCustomFooter(
+  customFooter: string,
+  options?: {
+    title?: string;
+    description?: string;
+    color?: ColorResolvable;
+    timestamp?: boolean;
+  }
+): EmbedBuilder
+```
+
+### Usage Pattern
+
+```typescript
+import { createEmbed, createEmbedWithCustomFooter } from '../../utils/embed';
+
+// Basic embed
+const embed = createEmbed({
+  title: translate(locale, 'commands.mycommand.title'),
+  description: translate(locale, 'commands.mycommand.description'),
+  color: '#00FF00', // Optional
+});
+
+// Embed with custom footer
+const embed = createEmbedWithCustomFooter(
+  translate(locale, 'commands.mycommand.footer'),
+  {
+    title: translate(locale, 'commands.mycommand.title'),
+    description: '...',
+  }
+);
+
+// Add fields
+embed.addFields(
+  {
+    name: translate(locale, 'commands.mycommand.field1'),
+    value: 'value',
+    inline: true,
+  },
+  {
+    name: '\u200B', // Zero-width space for spacing
+    value: '...',
+    inline: false,
+  }
+);
+
+// Set thumbnail
+embed.setThumbnail(url);
+
+// Send
+await message.reply({ embeds: [embed] });
+```
+
+---
+
+## 5. Logging
+
+### Logger Utility
+
+Use `logger` from `src/utils/logger.ts`:
+
+```typescript
+import { logger } from '../../utils/logger';
+
+// Info log
+logger.info('Message', {
+  key: 'value',
+  guildId: message.guild?.id
+});
+
+// Error log
+logger.error('Error message', {
+  error,
+  context: 'additional info'
+});
+
+// Warn log
+logger.warn('Warning message', { data });
+
+// Debug log
+logger.debug('Debug message', { data });
+```
+
+### Logging in Commands
+
+```typescript
+// Log command start
+logger.info('Command execute', {
+  command: command.name,
+  args,
+  userId: message.author.id,
+  guildId: message.guild?.id,
+});
+
+// Log success
+logger.info('Command finished', {
+  command: command.name,
+  guildId: message.guild?.id,
+});
+
+// Log errors
+logger.error('Error executing command', {
+  command: commandName,
+  error,
+  userId: message.author.id,
+  guildId: message.guild?.id,
+});
+```
+
+---
+
+## 6. Lavalink Manager
+
+### Access in Commands
+
+```typescript
+async execute({ message, args, lavalinkManager }) {
+  // Get player
+  const player = lavalinkManager.getPlayer(message.guild!.id);
+
+  // Create player
+  const player = lavalinkManager.createPlayer({
+    guildId: message.guild!.id,
+    voiceChannelId: voiceChannel.id,
+    textChannelId: message.channel.id,
+    selfDeaf: true,
+    selfMute: false,
+  });
+
+  // Connect
+  if (!player.connected) {
+    await player.connect();
+  }
+
+  // Play
+  await player.play();
+
+  // Queue operations
+  await player.queue.add(track);
+  player.queue.tracks.length;
+  player.queue.current;
+
+  // Control
+  player.skip();
+  player.pause();
+  player.resume();
+  player.seek(position);
+  player.setVolume(volume);
+  player.destroy();
+}
+```
+
+### Common Patterns
+
+```typescript
+// Check if playing
+if (!player || !player.queue.current) {
+  await message.reply(translate(locale, 'commands.mycommand.not_playing'));
+  return;
+}
+
+// Get current track
+const track = player.queue.current;
+const position = player.position; // milliseconds
+const duration = track.info.duration; // milliseconds
+
+// Search tracks
+const res = await player.search(
+  {
+    query: query,
+    source: 'ytsearch', // or undefined for URL
+  },
+  message.author // requester
+);
+
+// Handle search result
+if (res.loadType === 'playlist') {
+  // Handle playlist
+} else {
+  // Handle single track
+  const track = res.tracks[0];
+}
+```
+
+---
+
+## 7. Event Handlers
+
+### Event Structure
+
+Event handlers are organized in `src/events/`:
+- Each event has its own file
+- All events are registered in `events/index.ts`
+- Main entry point (`index.ts`) only calls `registerEvents()`
+
+### Event Files
+
+#### `events/ready.ts`
+- Bot ready event
+- Initialize database
+- Initialize Lavalink connection
+
+#### `events/raw.ts`
+- Raw Discord event handler
+- Forwards events to Lavalink
+
+#### `events/messageCreate.ts`
+- Command handler
+- Parses commands, checks permissions/cooldown
+- Executes commands
+
+#### `events/lavalink.ts`
+- Lavalink player events (playerCreate, trackStart, trackEnd, etc.)
+- Lavalink node manager events (connect, disconnect, error, etc.)
+
+#### `events/index.ts`
+- Central registry for all events
+- Exports `registerEvents()` function
+
+### Pattern for Creating New Event Handler
+
+```typescript
+import { Client } from 'discord.js';
+import { LavalinkManager } from 'lavalink-client';
+import { logger } from '../../utils/logger';
+
+/**
+ * Event handler description
+ */
+export function registerMyEvent(client: Client, lavalinkManager: LavalinkManager): void {
+  client.on('eventName', async (data) => {
+    // Event handler logic
+    logger.info('Event occurred', { data });
+  });
+}
+```
+
+### Register Event in `events/index.ts`
+
+```typescript
+import { registerMyEvent } from './myEvent';
+
+export function registerEvents(client: Client, lavalinkManager: LavalinkManager): void {
+  // ... existing events
+  registerMyEvent(client, lavalinkManager);
+}
+```
+
+### Notes
+
+- **Do not create event handlers in `index.ts`** - All events must be in `events/` folder
+- **Each event file exports one function** with pattern `register{EventName}Event()`
+- **Use logger** for all event logging
+- **Error handling** should be added in event handlers
+
+---
+
+## 8. File Organization
+
+### Directory Structure
+
+```
+src/
+├── commands/          # All commands
+│   ├── index.ts       # Command registry
+│   ├── music/         # Music commands
+│   │   ├── play.ts
+│   │   ├── stop.ts
+│   │   ├── skip.ts
+│   │   └── ...
+│   ├── admin/         # Admin commands
+│   │   ├── prefix.ts
+│   │   ├── locale.ts
+│   │   └── help.ts
+│   └── system/        # System commands
+│       └── debug.ts
+├── events/             # Event handlers
+│   ├── index.ts        # Register all events
+│   ├── ready.ts        # Bot ready event
+│   ├── raw.ts          # Raw Discord event
+│   ├── messageCreate.ts # Command handler
+│   └── lavalink.ts     # Lavalink events
+├── locales/           # Translation files
+│   ├── en.json
+│   └── vi.json
+├── types/             # TypeScript types
+│   └── Command.ts
+├── utils/             # Utilities
+│   ├── cooldown.ts    # Cooldown manager
+│   ├── database.ts
+│   ├── embed.ts
+│   ├── formatTime.ts
+│   ├── i18n.ts
+│   ├── logger.ts
+│   ├── permissions.ts # Permission utilities
+│   └── spectrum.ts
+└── index.ts           # Main entry point
+```
+
+### Naming Conventions
+
+- **Files**: lowercase, kebab-case (e.g., `nowplaying.ts`, `my-command.ts`)
+- **Commands**: lowercase, no spaces (e.g., `nowplaying`, `mycommand`)
+- **Exports**: camelCase with suffix `Command` (e.g., `nowPlayingCommand`, `myCommand`)
+- **Types**: PascalCase (e.g., `Command`, `CommandContext`, `Locale`)
+- **Functions**: camelCase (e.g., `getGuildLocale`, `createEmbed`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `DEFAULT_PREFIX`)
+
+---
+
+## 9. Main Entry Point (index.ts)
+
+### `index.ts` Structure
+
+File `index.ts` should be very minimal, containing only:
+1. Import dependencies
+2. Initialize Discord client
+3. Initialize Lavalink manager
+4. Register events
+5. Login to Discord
+
+### Pattern
+
+```typescript
+import { Client, GatewayIntentBits } from 'discord.js';
+import { LavalinkManager } from 'lavalink-client';
+import * as dotenv from 'dotenv';
+import { registerEvents } from './events';
+
+dotenv.config();
+
+// Initialize Discord client
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
+
+// Initialize Lavalink manager
+const lavalinkManager = new LavalinkManager({
+  // ... config
+});
+
+// Register all event handlers
+registerEvents(client, lavalinkManager);
+
+// Login to Discord
+client.login(process.env.DISCORD_TOKEN);
+```
+
+### Notes
+
+- **Do not place event handlers directly in `index.ts`**
+- **Do not place business logic in `index.ts`**
+- **All logic should be in events, commands, or utils**
+
+---
+
+## 10. TypeScript Best Practices
+
+### Type Safety
+
+```typescript
+// Always type function parameters
+async execute({ message, args, lavalinkManager }: CommandContext) {
+  // ...
+}
+
+// Use type assertions carefully
+const locale = (await getGuildLocale(...)) as Locale;
+
+// Use type imports
+import type { Locale } from '../../utils/i18n';
+import type { Command } from '../../types/Command';
+```
+
+### Null Safety
+
+```typescript
+// Check for null/undefined
+if (!message.guild) {
+  return;
+}
+
+// Use optional chaining
+const guildId = message.guild?.id;
+
+// Use non-null assertion only when certain
+const player = lavalinkManager.getPlayer(message.guild!.id);
+```
+
+---
+
+## 11. Common Patterns
+
+### Command with Voice Channel Check
+
+```typescript
+const member = message.member;
+const voiceChannel = member?.voice.channel;
+
+if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
+  await message.reply(translate(locale, 'commands.mycommand.no_voice'));
+  return;
+}
+```
+
+### Command with Permission Check
+
+**Use field in Command definition** (no manual check needed):
+
+```typescript
+import { PermissionFlagsBits } from 'discord.js';
+import { Command } from '../../types/Command';
+
+export const adminCommand: Command = {
+  name: 'admincommand',
+  // ...
+  requiredPermissions: [PermissionFlagsBits.ManageGuild], // Auto-checked by handler
+  guildOnly: true, // Auto-checked by handler
+  // ...
+};
+```
+
+### Command with Guild-Only
+
+**Use field in Command definition**:
+
+```typescript
+export const guildCommand: Command = {
+  name: 'guildcommand',
+  // ...
+  guildOnly: true, // Auto-checked by handler
+  // ...
+};
+```
+
+**In execute function**, if `guildOnly: true`, you can safely use `message.guild!.id`:
+```typescript
+async execute({ message, args, lavalinkManager }) {
+  const guildId = message.guild!.id; // Safe because guildOnly: true
+  // ...
+}
+```
+
+### Format Time
+
+```typescript
+import { formatTime } from '../../utils/formatTime';
+
+const durationText = formatTime(duration); // milliseconds -> "1:23"
+```
+
+---
+
+## 12. Permissions and Cooldown
+
+### Permission System
+
+Command handler automatically checks permissions and guild-only. You only need to declare:
+
+```typescript
+export const myCommand: Command = {
+  name: 'mycommand',
+  // ...
+  requiredPermissions: [PermissionFlagsBits.ManageGuild], // Optional
+  guildOnly: true, // Optional
+  cooldown: 5, // Optional (default: 10 seconds)
+  // ...
+};
+```
+
+### Available Permission Flags
+
+```typescript
+import { PermissionFlagsBits } from 'discord.js';
+
+// Common permissions
+PermissionFlagsBits.ManageGuild      // Manage server settings
+PermissionFlagsBits.Administrator     // Administrator
+PermissionFlagsBits.ManageChannels    // Manage channels
+PermissionFlagsBits.ManageMessages   // Manage messages
+PermissionFlagsBits.KickMembers       // Kick members
+PermissionFlagsBits.BanMembers       // Ban members
+// ... see Discord.js docs for full list
+```
+
+### Cooldown System
+
+- **Default**: 10 seconds for all commands
+- **Custom**: Set `cooldown: 5` to override (5 seconds)
+- **Disable**: Set `cooldown: 0` to disable cooldown for that command
+- **Per-user per-guild**: Cooldown is tracked separately for each user in each guild
+- **Auto cleanup**: Expired cooldowns are automatically cleaned up every 5 minutes
+
+### Cooldown Examples
+
+```typescript
+// Default 10 seconds
+export const normalCommand: Command = {
+  name: 'normal',
+  // cooldown not specified = 10 seconds
+};
+
+// Custom 5 seconds
+export const fastCommand: Command = {
+  name: 'fast',
+  cooldown: 5,
+};
+
+// No cooldown
+export const instantCommand: Command = {
+  name: 'instant',
+  cooldown: 0,
+};
+```
+
+### Permission Utilities
+
+From `src/utils/permissions.ts`:
+
+```typescript
+import {
+  hasPermissions,
+  canUseInContext,
+  getPermissionErrorMessage,
+  getGuildOnlyErrorMessage,
+  isBotOwner,
+  getOwnerOnlyErrorMessage,
+} from '../../utils/permissions';
+
+// Check permissions (usually not needed - handled by command handler)
+hasPermissions(message, [PermissionFlagsBits.ManageGuild]);
+
+// Check context (usually not needed - handled by command handler)
+canUseInContext(message, true); // guildOnly: true
+
+// Check if user is bot owner (for system commands)
+isBotOwner(message.author.id); // Returns true if user is bot owner
+
+// Get owner-only error message
+const errorMsg = await getOwnerOnlyErrorMessage(locale, command.name);
+```
+
+**Notes**:
+- These functions are used by command handler. You usually don't need to call them directly in command execute function.
+- `isBotOwner()` checks `process.env.BOT_OWNER_ID` against `message.author.id`
+- System commands (`category: 'system'`) are automatically checked for owner-only by command handler
+
+---
+
+## 13. Checklist When Creating New Commands
+
+- [ ] Create command file in `src/commands/`
+- [ ] Export command object with name `{name}Command`
+- [ ] Import and register in `src/commands/index.ts`
+- [ ] Add translations to `src/locales/en.json`
+- [ ] Add translations to `src/locales/vi.json`
+- [ ] Use `getGuildLocale()` to get locale
+- [ ] Use `translate()` for all user-facing messages
+- [ ] Add error handling with try-catch
+- [ ] Add logging with `logger`
+- [ ] Validate inputs (args, voice channel, player state, etc.)
+- [ ] Use `createEmbed()` or `createEmbedWithCustomFooter()` for rich messages
+- [ ] **Declare `category` for command (`'music'`, `'admin'`, or `'system'`)**
+- [ ] **Declare `requiredPermissions` if command needs special permissions**
+- [ ] **Declare `guildOnly: true` if command only works in guild**
+- [ ] **Declare `cooldown` if want to override default (10s) or disable (0)**
+- [ ] Test with both locales (vi, en)
+
+---
+
+## 14. Code Style
+
+- **Indentation**: 2 spaces
+- **Quotes**: Single quotes for strings
+- **Semicolons**: Yes
+- **Trailing commas**: Yes in objects/arrays
+- **Line length**: Prefer < 100 characters, break if needed
+- **Async/await**: Prefer async/await over promises
+- **Error messages**: Always use i18n, do not hardcode
+
+---
+
+## 15. Command Interface Fields Reference
+
+### Required Fields
+- `name: string` - Command name (lowercase, no spaces)
+- `description: string` - Command description
+- `usage: string` - Usage example
+- `category: CommandCategory` - Command category: `'music'` | `'admin'` | `'system'`
+- `execute: (context: CommandContext) => Promise<void>` - Execute function
+
+### Optional Fields
+- `aliases?: string[]` - Command aliases
+- `requiredPermissions?: PermissionResolvable[]` - Required Discord permissions
+- `guildOnly?: boolean` - If true, command only works in guilds (default: false)
+- `cooldown?: number` - Cooldown in seconds (default: 10, set 0 to disable)
+
+### Command Categories
+
+- **`'music'`**: Music playback commands (play, stop, skip, queue, nowplaying, seek, jump, speak)
+- **`'admin'`**: Server administration commands (prefix, locale, help)
+- **`'system'`**: System/debug commands (debug) - **Owner-only**: Only bot owner can use
+
+**Notes about System Commands**:
+- System commands can only be used by bot owner
+- Bot owner is determined by environment variable `BOT_OWNER_ID`
+- System commands will not be displayed in help command for non-owner users
+- If non-owner user tries to use system command, will receive error message
+
+### Command Handler Flow
+
+1. **Parse command** from message
+2. **Check `guildOnly`** - Return error if used in DM when `guildOnly: true`
+3. **Check `category === 'system'`** - Return error if user is not bot owner
+4. **Check `requiredPermissions`** - Return error if user lacks permissions
+5. **Check `cooldown`** - Return error if user is on cooldown
+6. **Execute command** - Run execute function
+7. **Set cooldown** - Apply cooldown after successful execution
+
+---
+
+## 16. Git Commit Messages
+
+- Use English
+- Format: `type: description`
+- Types: `feat`, `fix`, `refactor`, `docs`, `chore`
+- Example: `feat: add volume command`, `fix: i18n for play command`

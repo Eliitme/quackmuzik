@@ -1,0 +1,15 @@
+apiVersion: v2
+name: quackmuzik
+description: A Helm chart for QuackMuzik Discord music bot with Lavalink
+type: application
+version: 1.0.0
+appVersion: '1.0.0'
+keywords:
+  - discord
+  - music
+  - bot
+  - lavalink
+home: https://github.com/your-org/quackmuzik
+maintainers:
+  - name: Your Name
+    email: your-email@example.com

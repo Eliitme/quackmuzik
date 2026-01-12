@@ -1,0 +1,125 @@
+services:
+  # YouTube Cipher Service - Decrypts YouTube signatures
+  # Build from source: https://github.com/kikkia/yt-cipher
+  yt-cipher:
+    build:
+      context: ./yt-cipher
+      dockerfile: Dockerfile
+    container_name: quackmuzik-cipher
+    restart: unless-stopped
+    networks:
+      - lavalink
+    expose:
+      - 8001
+    ports:
+      - "8001:8001"
+    environment:
+      - MAX_THREADS=2 # Adjust based on your CPU cores
+      - PORT=8001
+      - HOST=0.0.0.0
+      - PREPROCESSED_CACHE_SIZE=150
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8001 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    container_name: quackmuzik-lavalink
+    restart: unless-stopped
+    depends_on:
+      yt-cipher:
+        condition: service_healthy
+    environment:
+      - _JAVA_OPTIONS=-Xmx512M
+      - SERVER_PORT=2333
+      - LAVALINK_SERVER_PASSWORD=${LAVALINK_SERVER_PASSWORD:-youshallnotpass}
+      # Spotify credentials
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      # Apple Music credentials
+      # - APPLE_MUSIC_API_TOKEN=${APPLE_MUSIC_API_TOKEN:-}
+      # Deezer credentials (optional)
+      # - DEEZER_MASTER_KEY=${DEEZER_MASTER_KEY:-}
+      # Yandex Music credentials
+      # - YANDEX_MUSIC_TOKEN=${YANDEX_MUSIC_TOKEN:-}
+      # YouTube OAuth (optional, for better YouTube access)
+      # - YOUTUBE_OAUTH_REFRESH_TOKEN=${YOUTUBE_OAUTH_REFRESH_TOKEN:-}
+      # Sentry (optional, for error tracking)
+      # - SENTRY_DSN=${SENTRY_DSN:-}
+      # - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-}
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/logs:/opt/Lavalink/logs
+    networks:
+      - lavalink
+    expose:
+      - 2333
+    ports:
+      - 2333:2333
+    healthcheck:
+      # Healthcheck uses LAVALINK_SERVER_PASSWORD from environment variable
+      # Falls back to default 'youshallnotpass' if not set
+      test:
+        [
+          "CMD-SHELL",
+          'wget --spider -q --header "Authorization: ${LAVALINK_SERVER_PASSWORD:-youshallnotpass}" http://localhost:2333/version || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: quackmuzik-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_NAME:-quackmuzik}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lavalink
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    profiles:
+      - production
+    build: .
+    container_name: quackmuzik-bot
+    restart: unless-stopped
+    depends_on:
+      lavalink:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - LAVALINK_HOST=lavalink
+      - LAVALINK_PORT=2333
+      - LAVALINK_PASSWORD=${LAVALINK_SERVER_PASSWORD:-youshallnotpass}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-quackmuzik}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+    networks:
+      - lavalink
+
+networks:
+  lavalink:
+    driver: bridge
+
+volumes:
+  postgres_data:
