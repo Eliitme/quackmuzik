@@ -75,7 +75,29 @@
       "volume": "🔊 Volume",
       "progress": "📊 Progress",
       "requested_by": "🎤 Requested by",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "button_previous": "Previous",
+      "button_pause": "Pause",
+      "button_resume": "Resume",
+      "button_skip": "Skip",
+      "button_loop": "Loop",
+      "button_loop_queue": "Loop Queue",
+      "button_loop_track": "Loop Track",
+      "button_shuffle": "Shuffle",
+      "button_stop": "Stop",
+      "guild_only": "❌ This command can only be used in a server!",
+      "no_voice": "❌ You must be in a voice channel to use this!",
+      "same_voice_channel": "❌ You must be in the same voice channel as the bot!",
+      "restarted": "⏮️ Restarted current track",
+      "no_previous": "❌ Cannot go to previous track (no history available)",
+      "paused": "⏸️ Paused playback",
+      "resumed": "▶️ Resumed playback",
+      "loop_queue": "🔁 Loop mode: Queue",
+      "loop_track": "🔁 Loop mode: Track",
+      "loop_off": "🔁 Loop mode: Off",
+      "shuffled": "🔀 Queue shuffled",
+      "no_queue": "❌ No songs in queue to shuffle!",
+      "error": "❌ An error occurred!"
     },
     "stop": {
       "name": "stop",
@@ -99,7 +121,8 @@
       "vote_description": "**{title}**\n\n✅ Votes: **{votes}/{required}**\n\n💡 Users with DJ role can skip immediately",
       "already_voted": "❌ You have already voted to skip this song!\n📊 Current votes: **{votes}/{required}**",
       "vote_skipped": "⏭️ **Vote passed!** Skipped: **{title}**\n🗳️ Votes: **{votes}/{required}**",
-      "vote_skipped_last": "⏭️ **Vote passed!** Skipped: **{title}**\n🗳️ Votes: **{votes}/{required}**\n✅ End of queue, stopped playing."
+      "vote_skipped_last": "⏭️ **Vote passed!** Skipped: **{title}**\n🗳️ Votes: **{votes}/{required}**\n✅ End of queue, stopped playing.",
+      "vote_added": "🗳️ Vote added! **{votes}/{required}** votes needed to skip"
     },
     "jump": {
       "name": "jump",

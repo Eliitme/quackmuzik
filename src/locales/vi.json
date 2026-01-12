@@ -75,7 +75,29 @@
       "volume": "🔊 Volume",
       "progress": "📊 Progress",
       "requested_by": "🎤 Yêu cầu bởi",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "button_previous": "Trước",
+      "button_pause": "Tạm dừng",
+      "button_resume": "Tiếp tục",
+      "button_skip": "Bỏ qua",
+      "button_loop": "Lặp lại",
+      "button_loop_queue": "Lặp Queue",
+      "button_loop_track": "Lặp Track",
+      "button_shuffle": "Xáo trộn",
+      "button_stop": "Dừng",
+      "guild_only": "❌ Lệnh này chỉ có thể sử dụng trong server!",
+      "no_voice": "❌ Bạn phải ở trong voice channel để sử dụng!",
+      "same_voice_channel": "❌ Bạn phải ở trong cùng voice channel với bot!",
+      "restarted": "⏮️ Đã khởi động lại bài hát hiện tại",
+      "no_previous": "❌ Không thể quay lại bài trước (không có lịch sử)",
+      "paused": "⏸️ Đã tạm dừng phát",
+      "resumed": "▶️ Đã tiếp tục phát",
+      "loop_queue": "🔁 Chế độ lặp: Queue",
+      "loop_track": "🔁 Chế độ lặp: Track",
+      "loop_off": "🔁 Chế độ lặp: Tắt",
+      "shuffled": "🔀 Đã xáo trộn queue",
+      "no_queue": "❌ Không có bài hát nào trong queue để xáo trộn!",
+      "error": "❌ Có lỗi xảy ra!"
     },
     "stop": {
       "name": "stop",
@@ -99,7 +121,8 @@
       "vote_description": "**{title}**\n\n✅ Số phiếu: **{votes}/{required}**\n\n💡 Người dùng có role DJ có thể bỏ qua ngay lập tức",
       "already_voted": "❌ Bạn đã vote để bỏ qua bài hát này rồi!\n📊 Số phiếu hiện tại: **{votes}/{required}**",
       "vote_skipped": "⏭️ **Vote đã đạt!** Đã bỏ qua: **{title}**\n🗳️ Số phiếu: **{votes}/{required}**",
-      "vote_skipped_last": "⏭️ **Vote đã đạt!** Đã bỏ qua: **{title}**\n🗳️ Số phiếu: **{votes}/{required}**\n✅ Hết danh sách phát, đã kết thúc phát nhạc."
+      "vote_skipped_last": "⏭️ **Vote đã đạt!** Đã bỏ qua: **{title}**\n🗳️ Số phiếu: **{votes}/{required}**\n✅ Hết danh sách phát, đã kết thúc phát nhạc.",
+      "vote_added": "🗳️ Đã thêm vote! Cần **{votes}/{required}** phiếu để bỏ qua"
     },
     "jump": {
       "name": "jump",
