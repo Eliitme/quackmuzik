@@ -72,11 +72,10 @@ data:
           - MUSIC
           - ANDROID_VR
           - WEB
-          - WEBEMBEDDED
         oauth:
           enabled: true
           refreshToken: '${YOUTUBE_OAUTH_REFRESH_TOKEN:}'
-          skipInitialization: true
+          skipInitialization: false
 
       lavasrc:
         spotify:
