@@ -1,0 +1,100 @@
+{{- if .Values.database.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quackmuzik.fullname" . }}-postgres
+  labels:
+    {{- include "quackmuzik.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "quackmuzik.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "quackmuzik.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: postgres
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+        imagePullPolicy: {{ .Values.database.image.pullPolicy }}
+        ports:
+        - name: postgres
+          containerPort: {{ .Values.database.port }}
+          protocol: TCP
+        env:
+        - name: POSTGRES_DB
+          value: {{ .Values.database.name | quote }}
+        - name: POSTGRES_USER
+          value: {{ .Values.database.user | quote }}
+        {{- if and .Values.secrets.create .Values.secrets.databasePassword }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: database-password
+        {{- else if .Values.database.password }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.database.password | quote }}
+        {{- end }}
+        {{- if .Values.database.env }}
+        {{- toYaml .Values.database.env | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        {{- if .Values.healthChecks.enabled }}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U {{ .Values.database.user }} || exit 1
+          initialDelaySeconds: 30
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U {{ .Values.database.user }} || exit 1
+          initialDelaySeconds: 10
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.database.resources | nindent 10 }}
+      {{- if .Values.database.persistence.enabled }}
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: {{ include "quackmuzik.fullname" . }}-postgres-data
+      {{- else }}
+      volumes:
+      - name: postgres-data
+        emptyDir: {}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

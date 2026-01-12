@@ -1,0 +1,19 @@
+{{- if .Values.database.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "quackmuzik.fullname" . }}-postgres
+  labels:
+    {{- include "quackmuzik.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  type: {{ .Values.database.service.type }}
+  ports:
+    - port: {{ .Values.database.service.port }}
+      targetPort: postgres
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "quackmuzik.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+{{- end }}

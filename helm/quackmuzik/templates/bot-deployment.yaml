@@ -32,6 +32,17 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
+      {{- if .Values.database.enabled }}
+      - name: wait-for-database
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z {{ include "quackmuzik.fullname" . }}-postgres {{ .Values.database.service.port }}; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+      {{- end }}
       - name: wait-for-lavalink
         image: busybox:1.35
         command: ['sh', '-c']
@@ -76,6 +87,26 @@ spec:
         {{- end }}
         - name: DEBUG
           value: {{ .Values.bot.env.DEBUG | quote }}
+        {{- if .Values.database.enabled }}
+        - name: DB_HOST
+          value: {{ printf "%s-postgres" (include "quackmuzik.fullname" .) | quote }}
+        - name: DB_PORT
+          value: {{ .Values.database.service.port | quote }}
+        - name: DB_NAME
+          value: {{ .Values.database.name | quote }}
+        - name: DB_USER
+          value: {{ .Values.database.user | quote }}
+        {{- if and .Values.secrets.create .Values.secrets.databasePassword }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: database-password
+        {{- else if .Values.database.password }}
+        - name: DB_PASSWORD
+          value: {{ .Values.database.password | quote }}
+        {{- end }}
+        {{- else }}
         {{- if .Values.bot.database.host }}
         - name: DB_HOST
           value: {{ .Values.bot.database.host | quote }}
@@ -101,6 +132,7 @@ spec:
         {{- else if .Values.bot.database.password }}
         - name: DB_PASSWORD
           value: {{ .Values.bot.database.password | quote }}
+        {{- end }}
         {{- end }}
         {{- if .Values.bot.env.botOwnerId }}
         - name: BOT_OWNER_ID

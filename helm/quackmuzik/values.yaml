@@ -45,9 +45,11 @@ bot:
     port: 2333
     # password should be set via secrets.lavalinkServerPassword
     password: '' # Fallback only - use secrets.lavalinkServerPassword for production
-  # Database connection (external PostgreSQL service)
+  # Database connection
+  # If database.enabled is true, will use internal PostgreSQL service
+  # If database.enabled is false, will use external database (set host, port, etc.)
   database:
-    host: '' # e.g., 'postgres-service' or external database host
+    host: '' # e.g., 'postgres-service' or external database host (ignored if database.enabled is true)
     port: '5432'
     name: 'quackmuzik'
     user: 'postgres'
@@ -114,6 +116,34 @@ ytCipher:
   service:
     type: ClusterIP
     port: 8001
+
+# PostgreSQL database configuration
+database:
+  enabled: true # Set to false to use external database
+  image:
+    repository: postgres
+    tag: '16-alpine'
+    pullPolicy: IfNotPresent
+  port: 5432
+  name: 'quackmuzik'
+  user: 'postgres'
+  password: '' # Should be set via secrets.databasePassword for production
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  persistence:
+    enabled: true
+    storageClass: 'local-path'
+    accessMode: ReadWriteOnce
+    size: 10Gi
+  service:
+    type: ClusterIP
+    port: 5432
+  env: {} # Additional environment variables for PostgreSQL
 
 # Secrets configuration
 # These should be set via --set or from a secrets file
