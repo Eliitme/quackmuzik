@@ -217,7 +217,7 @@ healthChecks:
 # Set proxy settings to route network traffic through a proxy server
 # All services (bot, lavalink, yt-cipher) will use these proxy settings
 proxy:
-  enabled: false
+  enabled: true
   # HTTP proxy URL (e.g., http://proxy.example.com:8080)
   # For authenticated proxy, use: http://username:password@proxy.example.com:8080
   httpProxy: ''
