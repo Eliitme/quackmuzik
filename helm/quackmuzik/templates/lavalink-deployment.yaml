@@ -207,6 +207,8 @@ spec:
           readOnly: true
         - name: lavalink-logs
           mountPath: /opt/Lavalink/logs
+        - name: lavalink-plugins
+          mountPath: /opt/Lavalink/plugins
         resources:
           {{- toYaml .Values.lavalink.resources | nindent 10 }}
       volumes:
@@ -217,8 +219,13 @@ spec:
       - name: lavalink-logs
         persistentVolumeClaim:
           claimName: {{ include "quackmuzik.fullname" . }}-lavalink-logs
+      - name: lavalink-plugins
+        persistentVolumeClaim:
+          claimName: {{ include "quackmuzik.fullname" . }}-lavalink-plugins
       {{- else }}
       - name: lavalink-logs
+        emptyDir: {}
+      - name: lavalink-plugins
         emptyDir: {}
       {{- end }}
       {{- with .Values.nodeSelector }}

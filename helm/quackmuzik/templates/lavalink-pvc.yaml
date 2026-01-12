@@ -1,4 +1,5 @@
 {{- if and .Values.lavalink.enabled .Values.lavalink.persistence.enabled }}
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -15,5 +16,22 @@ spec:
   resources:
     requests:
       storage: {{ .Values.lavalink.persistence.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "quackmuzik.fullname" . }}-lavalink-plugins
+  labels:
+    {{- include "quackmuzik.labels" . | nindent 4 }}
+    app.kubernetes.io/component: lavalink
+spec:
+  accessModes:
+    - {{ .Values.lavalink.persistence.accessMode }}
+  {{- if .Values.lavalink.persistence.storageClass }}
+  storageClassName: {{ .Values.lavalink.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: 1Gi
 {{- end }}
 
