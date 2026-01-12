@@ -149,6 +149,11 @@ jobs:
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG=${GITHUB_REF#refs/tags/}
+            # Remove 'v' prefix if present (e.g., v1.0.9 -> 1.0.9)
+            # This matches the semver pattern used in docker/metadata-action
+            if [[ "${TAG}" =~ ^v[0-9] ]]; then
+              TAG=${TAG#v}
+            fi
           else
             TAG=latest
           fi
