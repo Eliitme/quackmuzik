@@ -1,0 +1,208 @@
+# Default values for quackmuzik
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  imageRegistry: ''
+  imagePullSecrets: []
+  # Automatically create imagePullSecret from provided credentials
+  imagePullSecret:
+    create: false
+    name: ''
+    # Registry credentials (e.g., ghcr.io, docker.io)
+    # For production, use secrets.imagePullSecret* instead
+    registry: ''
+    username: ''
+    password: ''
+    # Or use existing secret name (if already created)
+    existingSecret: ''
+
+# Bot configuration
+bot:
+  enabled: true
+  image:
+    repository: quackmuzik-bot
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  env:
+    # Required - set via secrets
+    DISCORD_TOKEN: ''
+    DISCORD_CLIENT_ID: ''
+    # Optional
+    DEBUG: 'false'
+    botOwnerId: '' # Discord user ID for system commands
+  # Lavalink connection (internal service name)
+  lavalink:
+    host: 'lavalink'
+    port: 2333
+    # password should be set via secrets.lavalinkServerPassword
+    password: '' # Fallback only - use secrets.lavalinkServerPassword for production
+  # Database connection (external PostgreSQL service)
+  database:
+    host: '' # e.g., 'postgres-service' or external database host
+    port: '5432'
+    name: 'quackmuzik'
+    user: 'postgres'
+    password: '' # Should be set via secrets.databasePassword for production
+
+# Lavalink server configuration
+lavalink:
+  enabled: true
+  image:
+    repository: ghcr.io/lavalink-devs/lavalink
+    tag: '4'
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  javaOptions: '-Xmx512M'
+  server:
+    port: 2333
+    # password should be set via secrets.lavalinkServerPassword
+    password: '' # Fallback only - use secrets.lavalinkServerPassword for production
+  env:
+    # Optional music platform credentials
+    SPOTIFY_CLIENT_ID: ''
+    SPOTIFY_CLIENT_SECRET: ''
+    APPLE_MUSIC_API_TOKEN: ''
+    DEEZER_MASTER_KEY: ''
+    YANDEX_MUSIC_TOKEN: ''
+    # Sentry configuration (optional)
+    sentryEnvironment: '' # e.g., 'production', 'development'
+  service:
+    type: ClusterIP
+    port: 2333
+  persistence:
+    enabled: true
+    storageClass: 'local-path'
+    accessMode: ReadWriteOnce
+    size: 10Gi
+
+# yt-cipher service configuration
+ytCipher:
+  enabled: true
+  image:
+    repository: quackmuzik-yt-cipher
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  env:
+    MAX_THREADS: '2'
+    PORT: '8001'
+    HOST: '0.0.0.0'
+    PREPROCESSED_CACHE_SIZE: '150'
+  service:
+    type: ClusterIP
+    port: 8001
+
+# Secrets configuration
+# These should be set via --set or from a secrets file
+secrets:
+  create: true
+  # Values should be provided via --set or external secret management
+  # Required secrets
+  discordToken: ''
+  discordClientId: ''
+  lavalinkServerPassword: '' # Lavalink server password (required)
+  # Optional music platform credentials
+  spotifyClientId: ''
+  spotifyClientSecret: ''
+  appleMusicApiToken: ''
+  deezerMasterKey: ''
+  yandexMusicToken: ''
+  vkUserToken: ''
+  tidalToken: ''
+  tidalRefreshToken: ''
+  qobuzOauthToken: ''
+  qobuzAppId: ''
+  youtubeOauthRefreshToken: ''
+  # Optional monitoring/error tracking
+  sentryDsn: ''
+  # Database credentials
+  databasePassword: ''
+  # Proxy credentials (optional - for secure proxy authentication)
+  proxyUsername: ''
+  proxyPassword: ''
+  # Image pull secret credentials (for private registries like GHCR)
+  imagePullSecretRegistry: ''
+  imagePullSecretUsername: ''
+  imagePullSecretPassword: ''
+
+# Service account
+serviceAccount:
+  create: true
+  name: ''
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 2000
+
+# Security context
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Health checks
+healthChecks:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+# Proxy configuration
+# Set proxy settings to route network traffic through a proxy server
+# All services (bot, lavalink, yt-cipher) will use these proxy settings
+proxy:
+  enabled: false
+  # HTTP proxy URL (e.g., http://proxy.example.com:8080)
+  # For authenticated proxy, use: http://username:password@proxy.example.com:8080
+  httpProxy: ''
+  # HTTPS proxy URL (e.g., http://proxy.example.com:8080)
+  # For authenticated proxy, use: http://username:password@proxy.example.com:8080
+  httpsProxy: ''
+  # SOCKS proxy URL (e.g., socks5://proxy.example.com:1080)
+  # For authenticated SOCKS5, use: socks5://username:password@proxy.example.com:1080
+  socksProxy: ''
+  # Comma-separated list of hosts/domains that should not use proxy
+  # Include internal Kubernetes services and localhost
+  # Default excludes: localhost, internal K8s services, private IP ranges
+  noProxy: 'localhost,127.0.0.1,.svc,.svc.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+  # Proxy authentication (optional - can also embed in proxy URL above)
+  # For production, use secrets.proxyUsername and secrets.proxyPassword instead
+  # These values are only used if secrets are not provided
+  username: ''
+  password: ''

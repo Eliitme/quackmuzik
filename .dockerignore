@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+README.md
+CHANGELOG*.md
+*.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+.npm
+.yarn
+
+# Build outputs
+dist
+build
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Helm (not needed in Docker image)
+helm/
+
+# Logs
+lavalink/logs/
+*.log
+*.log.*
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.ts
+*.spec.ts
+
+# CI/CD
+.github
+

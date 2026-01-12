@@ -1,0 +1,170 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  plugins:
+    - dependency: 'dev.lavalink.youtube:youtube-plugin:1.15.0'
+      snapshot: false
+    - dependency: 'com.github.topi314.lavasrc:lavasrc-plugin:4.8.1'
+      repository: 'https://maven.topi.wtf/releases'
+      snapshot: false
+  server:
+    password: '${LAVALINK_SERVER_PASSWORD:youshallnotpass}'
+    sources:
+      youtube: false # Tắt default YouTube source (deprecated), dùng plugin thay thế
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    youtubePlaylistLoadLimit: 6
+    playerUpdateInterval: 5
+    youtubeSearchEnabled: false # Disable default search, use plugin
+    soundcloudSearchEnabled: true
+    gc-warnings: true
+
+metrics:
+  prometheus:
+    enabled: false
+    endpoint: /metrics
+
+sentry:
+  dsn: '${SENTRY_DSN:}'
+  environment: '${SENTRY_ENVIRONMENT:}'
+
+logging:
+  file:
+    path: ./logs/
+
+  level:
+    root: INFO
+    lavalink: INFO
+
+  logback:
+    rollingpolicy:
+      max-file-size: 1GB
+      max-history: 30
+
+plugins:
+  youtube:
+    enabled: true # Whether this source can be used.
+    allowSearch: true # Whether "ytsearch:" and "ytmsearch:" can be used.
+    allowDirectVideoIds: true # Whether just video IDs can match. If false, only complete URLs will be loaded.
+    allowDirectPlaylistIds: true # Whether just playlist IDs can match. If false, only complete URLs will be loaded.
+    # The clients to use for track loading. See below for a list of valid clients.
+    # Clients are queried in the order they are given (so the first client is queried first and so on...)
+    remoteCipher:
+      url: 'http://yt-cipher:8001/'
+      userAgent: 'QuackMuzik-Bot'
+    clients:
+      - MUSIC
+      - ANDROID_VR
+      - WEB
+      - WEBEMBEDDED
+
+    oauth:
+      enabled: true
+      refreshToken: '${YOUTUBE_OAUTH_REFRESH_TOKEN:}'
+      skipInitialization: true
+
+  lavasrc:
+    # LavaSrc Plugin v4.8.1 - Multi-platform music support
+    # GitHub: https://github.com/topi314/LavaSrc
+    # Supports: Spotify, Apple Music, Deezer, Yandex Music, Flowery TTS, and more
+
+    # === SPOTIFY ===
+    # Get credentials: https://developer.spotify.com/dashboard
+    # Free tier: 25,000 API calls per day
+    spotify:
+      enabled: true
+      clientId: '${SPOTIFY_CLIENT_ID:}'
+      clientSecret: '${SPOTIFY_CLIENT_SECRET:}'
+      countryCode: 'US'
+      playlistLoadLimit: 6 # Pages at 100 tracks each = 600 tracks max
+      albumLoadLimit: 6 # Pages at 50 tracks each = 300 tracks max
+      localFiles: false # Set to true to include local files from playlists
+
+    # === APPLE MUSIC ===
+    # Requires Apple Developer account ($99/year)
+    # Get token: https://developer.apple.com/documentation/applemusicapi
+    applemusic:
+      enabled: false
+      countryCode: 'US'
+      mediaAPIToken: '${APPLE_MUSIC_API_TOKEN:}'
+      playlistLoadLimit: 6 # Pages at 300 tracks each = 1,800 tracks max
+      albumLoadLimit: 6 # Pages at 300 tracks each = 1,800 tracks max
+
+    # === DEEZER ===
+    # Works without credentials for basic features
+    # For full access, get master key from Deezer API
+    deezer:
+      enabled: false
+      masterDecryptionKey: '${DEEZER_MASTER_KEY:}' # Optional
+
+    # === YANDEX MUSIC ===
+    # Popular in Russia/CIS countries
+    # Requires Yandex Music subscription and access token
+    yandexmusic:
+      enabled: false
+      accessToken: '${YANDEX_MUSIC_TOKEN:}'
+      playlistLoadLimit: 1 # Pages at 100 tracks each
+
+    # === FLOWERY TTS ===
+    # Text-to-Speech service - https://flowery.pw/
+    # Free to use, no API key required
+    floweryTts:
+      enabled: true
+      voice: '3edfe2d3-45fb-5f89-9689-7b79d77b65d7'
+      translate: false
+      silence: 0
+      speed: 1.0
+      audioFormat: 'mp3'
+
+    # === VK MUSIC ===
+    # VK (VKontakte) music platform - popular in Russia
+    vkmusic:
+      enabled: false
+      userToken: '${VK_USER_TOKEN:}'
+      playlistLoadLimit: 6
+      recommendationsLoadLimit: 3
+
+    # === TIDAL ===
+    # High-fidelity music streaming
+    tidal:
+      enabled: false
+      countryCode: 'US'
+      tidalToken: '${TIDAL_TOKEN:}'
+      tidalRefreshToken: '${TIDAL_REFRESH_TOKEN:}'
+
+    # === QOBUZ ===
+    # High-resolution audio streaming
+    qobuz:
+      enabled: false
+      userOauthToken: '${QOBUZ_OAUTH_TOKEN:}'
+      appId: '${QOBUZ_APP_ID:}'
+
+    # === JIOSAAVN ===
+    # Indian music streaming platform
+    jiosaavn:
+      enabled: false
+
+    # === SOURCE PROVIDERS ===
+    # Configure which sources to use for resolving tracks
+    providers:
+      - 'ytsearch:"%ISRC%"' # YouTube search by ISRC
+      - 'ytsearch:%QUERY%' # YouTube search by query
+
+    sources:
+      spotify: true
+      applemusic: false
+      deezer: false
+      yandexmusic: false
+      floweryTts: true
+      vkmusic: false
+      tidal: false
+      qobuz: false
+      jiosaavn: false

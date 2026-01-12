@@ -1,0 +1,130 @@
+{{- if .Values.ytCipher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quackmuzik.fullname" . }}-yt-cipher
+  labels:
+    {{- include "quackmuzik.labels" . | nindent 4 }}
+    app.kubernetes.io/component: yt-cipher
+spec:
+  replicas: {{ .Values.ytCipher.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "quackmuzik.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: yt-cipher
+  template:
+    metadata:
+      labels:
+        {{- include "quackmuzik.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: yt-cipher
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecret.create }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret.name | default (printf "%s-imagepullsecret" (include "quackmuzik.fullname" .)) }}
+      {{- else if .Values.global.imagePullSecret.existingSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret.existingSecret }}
+      {{- end }}
+      serviceAccountName: {{ include "quackmuzik.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: yt-cipher
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ include "quackmuzik.imageRegistry" . }}{{ .Values.ytCipher.image.repository }}:{{ .Values.ytCipher.image.tag }}"
+        imagePullPolicy: {{ .Values.ytCipher.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.ytCipher.service.port }}
+          protocol: TCP
+        env:
+        - name: MAX_THREADS
+          value: {{ .Values.ytCipher.env.MAX_THREADS | quote }}
+        - name: PORT
+          value: {{ .Values.ytCipher.env.PORT | quote }}
+        - name: HOST
+          value: {{ .Values.ytCipher.env.HOST | quote }}
+        - name: PREPROCESSED_CACHE_SIZE
+          value: {{ .Values.ytCipher.env.PREPROCESSED_CACHE_SIZE | quote }}
+        {{- if .Values.proxy.enabled }}
+        {{- if .Values.proxy.httpProxy }}
+        - name: HTTP_PROXY
+          value: {{ .Values.proxy.httpProxy | quote }}
+        - name: http_proxy
+          value: {{ .Values.proxy.httpProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.httpsProxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.proxy.httpsProxy | quote }}
+        - name: https_proxy
+          value: {{ .Values.proxy.httpsProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.socksProxy }}
+        - name: ALL_PROXY
+          value: {{ .Values.proxy.socksProxy | quote }}
+        - name: all_proxy
+          value: {{ .Values.proxy.socksProxy | quote }}
+        {{- end }}
+        {{- if .Values.proxy.noProxy }}
+        - name: NO_PROXY
+          value: {{ .Values.proxy.noProxy | quote }}
+        - name: no_proxy
+          value: {{ .Values.proxy.noProxy | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.proxyUsername }}
+        - name: PROXY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: proxy-username
+        {{- else if .Values.proxy.username }}
+        - name: PROXY_USERNAME
+          value: {{ .Values.proxy.username | quote }}
+        {{- end }}
+        {{- if and .Values.secrets.create .Values.secrets.proxyPassword }}
+        - name: PROXY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "quackmuzik.fullname" . }}-secrets
+              key: proxy-password
+        {{- else if .Values.proxy.password }}
+        - name: PROXY_PASSWORD
+          value: {{ .Values.proxy.password | quote }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.healthChecks.enabled }}
+        livenessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: {{ .Values.healthChecks.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        readinessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: {{ .Values.healthChecks.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.ytCipher.resources | nindent 10 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+

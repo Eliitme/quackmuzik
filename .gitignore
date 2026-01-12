@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+
+# YouTube tokens
+potToken/
+lavalink/tokens/
+lavalink/logs/
+lavalink/application.yml.backup
+lavalink/application.yml.tmp
+*.backup
+
+# Quota tracking
+quota-usage.json
+
+logs/
