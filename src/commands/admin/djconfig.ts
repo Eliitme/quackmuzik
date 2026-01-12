@@ -82,7 +82,10 @@ export const djconfigCommand: Command = {
     const filterName = args[0].trim().toLowerCase();
     const value = args[1]?.trim().toLowerCase();
 
-    if (!value || (value !== 'on' && value !== 'off' && value !== 'enable' && value !== 'disable')) {
+    if (
+      !value ||
+      (value !== 'on' && value !== 'off' && value !== 'enable' && value !== 'disable')
+    ) {
       await message.reply(translate(locale, 'commands.djconfig.invalid_value'));
       return;
     }
@@ -99,7 +102,7 @@ export const djconfigCommand: Command = {
       bass: 'bassboost',
       nightcore: 'nightcore',
       lofi: 'lofi',
-      lo-fi: 'lofi',
+      'lo-fi': 'lofi',
       vaporwave: 'vaporwave',
       vapor: 'vaporwave',
       'volume-normalization': 'volumeNormalization',

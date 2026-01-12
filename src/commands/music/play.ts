@@ -107,13 +107,15 @@ export const playCommand: Command = {
         // Track stats
         await incrementUserRequests(message.author.id, message.guild!.id);
         for (const track of res.tracks) {
-          await incrementTrackPlayCount(
-            track.info.uri,
-            track.info.identifier || null,
-            track.info.title,
-            track.info.author || null,
-            message.guild!.id
-          );
+          if (track.info.uri && track.info.title) {
+            await incrementTrackPlayCount(
+              track.info.uri,
+              track.info.identifier || null,
+              track.info.title,
+              track.info.author || null,
+              message.guild!.id
+            );
+          }
         }
 
         if (!player.playing) {
@@ -158,13 +160,15 @@ export const playCommand: Command = {
 
         // Track stats
         await incrementUserRequests(message.author.id, message.guild!.id);
-        await incrementTrackPlayCount(
-          track.info.uri,
-          track.info.identifier || null,
-          track.info.title,
-          track.info.author || null,
-          message.guild!.id
-        );
+        if (track.info.uri && track.info.title) {
+          await incrementTrackPlayCount(
+            track.info.uri,
+            track.info.identifier || null,
+            track.info.title,
+            track.info.author || null,
+            message.guild!.id
+          );
+        }
 
         if (!player.playing) {
           await player.play();
