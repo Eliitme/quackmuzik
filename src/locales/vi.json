@@ -84,6 +84,7 @@
       "button_loop_queue": "Lặp Queue",
       "button_loop_track": "Lặp Track",
       "button_shuffle": "Xáo trộn",
+      "button_like": "Thích ({count})",
       "button_stop": "Dừng",
       "guild_only": "❌ Lệnh này chỉ có thể sử dụng trong server!",
       "no_voice": "❌ Bạn phải ở trong voice channel để sử dụng!",
@@ -356,6 +357,21 @@
       "last_active": "Hoạt động lần cuối: {date}",
       "no_stats_self": "Bạn chưa có thống kê nào. Hãy bắt đầu phát nhạc để xem thứ hạng!",
       "no_stats_other": "Người dùng này chưa có thống kê nào."
+    },
+    "like": {
+      "name": "like",
+      "description": "Thích hoặc bỏ thích bài hát đang phát",
+      "usage": "like",
+      "no_voice": "❌ Bạn phải ở trong voice channel để sử dụng lệnh này!",
+      "not_playing": "❌ Không có bài hát nào đang phát!",
+      "same_voice_channel": "❌ Bạn phải ở trong cùng voice channel với bot!",
+      "liked_title": "❤️ Đã thích",
+      "liked_description": "Bạn đã thích **{title}**\n❤️ **{likes}** likes",
+      "liked": "❤️ Bạn đã thích **{title}**\n❤️ **{likes}** likes",
+      "unliked_title": "🤍 Đã bỏ thích",
+      "unliked_description": "Bạn đã bỏ thích **{title}**\n❤️ **{likes}** likes",
+      "unliked": "🤍 Bạn đã bỏ thích **{title}**\n❤️ **{likes}** likes",
+      "error": "❌ Đã xảy ra lỗi khi thích/bỏ thích bài hát!"
     },
     "playlist": {
       "name": "playlist",
