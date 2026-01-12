@@ -1560,10 +1560,7 @@ export async function unlikeTrack(
 /**
  * Get track likes count
  */
-export async function getTrackLikes(
-  trackUri: string,
-  guildId: string | null
-): Promise<number> {
+export async function getTrackLikes(trackUri: string, guildId: string | null): Promise<number> {
   const db = initDatabase();
 
   try {
@@ -1803,6 +1800,116 @@ export async function endListeningSession(
     }
   } catch (error) {
     logger.error('Error ending listening session', { sessionId, error });
+  }
+}
+
+/**
+ * Get active listening session for a user in a guild
+ * Optionally verify that session is for a specific voice channel
+ */
+export async function getActiveListeningSession(
+  userId: string,
+  guildId: string,
+  voiceChannelId?: string
+): Promise<number | null> {
+  const db = initDatabase();
+
+  try {
+    let query = `
+      SELECT id, voice_channel_id FROM listening_sessions
+      WHERE user_id = $1 AND guild_id = $2 AND ended_at IS NULL
+      ORDER BY started_at DESC
+      LIMIT 1
+    `;
+    const params: any[] = [userId, guildId];
+
+    if (voiceChannelId) {
+      query = `
+        SELECT id, voice_channel_id FROM listening_sessions
+        WHERE user_id = $1 AND guild_id = $2 AND voice_channel_id = $3 AND ended_at IS NULL
+        ORDER BY started_at DESC
+        LIMIT 1
+      `;
+      params.push(voiceChannelId);
+    }
+
+    const result = await db.query(query, params);
+
+    if (result.rows.length > 0) {
+      // If voiceChannelId was provided, verify it matches
+      if (voiceChannelId && result.rows[0].voice_channel_id !== voiceChannelId) {
+        return null; // Session exists but for different channel
+      }
+      return result.rows[0].id;
+    }
+
+    return null;
+  } catch (error) {
+    logger.error('Error getting active listening session', {
+      userId,
+      guildId,
+      voiceChannelId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Update listening session with track duration
+ * This is called when a track ends to add the track duration to the session
+ */
+export async function updateListeningSessionWithTrack(
+  sessionId: number,
+  trackDurationMinutes: number
+): Promise<void> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `UPDATE listening_sessions
+       SET tracks_played = tracks_played + 1,
+           duration_minutes = duration_minutes + $2
+       WHERE id = $1`,
+      [sessionId, trackDurationMinutes]
+    );
+  } catch (error) {
+    logger.error('Error updating listening session with track', {
+      sessionId,
+      trackDurationMinutes,
+      error,
+    });
+  }
+}
+
+/**
+ * End all active listening sessions for users in a voice channel
+ * Called when bot leaves or channel is cleared
+ */
+export async function endAllActiveSessionsInChannel(
+  guildId: string,
+  voiceChannelId: string
+): Promise<void> {
+  const db = initDatabase();
+
+  try {
+    const result = await db.query(
+      `UPDATE listening_sessions
+       SET ended_at = CURRENT_TIMESTAMP,
+           duration_minutes = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - started_at)) / 60
+       WHERE guild_id = $1 AND voice_channel_id = $2 AND ended_at IS NULL
+       RETURNING user_id, guild_id, duration_minutes`,
+      [guildId, voiceChannelId]
+    );
+
+    // Update user stats for all ended sessions
+    for (const row of result.rows) {
+      if (row.duration_minutes > 0) {
+        await updateUserListeningTime(row.user_id, row.guild_id, Math.floor(row.duration_minutes));
+      }
+    }
+  } catch (error) {
+    logger.error('Error ending all active sessions in channel', { guildId, voiceChannelId, error });
   }
 }
 
