@@ -1,6 +1,11 @@
 import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
-import { getGuildLocale, getGuildDjRole, getGuild24_7Mode } from '../../utils/database';
+import {
+  getGuildLocale,
+  getGuildDjRole,
+  getGuild24_7Mode,
+  incrementUserVotes,
+} from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import { createEmbed } from '../../utils/embed';
@@ -95,6 +100,11 @@ export const skipCommand: Command = {
       message.author.id,
       membersInChannel
     );
+
+    // Track vote stats
+    if (voteResult.success) {
+      await incrementUserVotes(message.author.id, message.guild!.id);
+    }
 
     if (!voteResult.success) {
       // User already voted

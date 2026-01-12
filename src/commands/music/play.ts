@@ -7,6 +7,8 @@ import {
   getGuildPrefix,
   getGuildDjRole,
   getGuildDjAudioSettings,
+  incrementUserRequests,
+  incrementTrackPlayCount,
 } from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
 import { applyDjAudioFilters } from '../../utils/audioFilters';
@@ -102,6 +104,18 @@ export const playCommand: Command = {
         // Thêm tất cả tracks vào queue
         await player.queue.add(res.tracks);
 
+        // Track stats
+        await incrementUserRequests(message.author.id, message.guild!.id);
+        for (const track of res.tracks) {
+          await incrementTrackPlayCount(
+            track.info.uri,
+            track.info.identifier || null,
+            track.info.title,
+            track.info.author || null,
+            message.guild!.id
+          );
+        }
+
         if (!player.playing) {
           await player.play();
         }
@@ -141,6 +155,16 @@ export const playCommand: Command = {
 
         const track = res.tracks[0];
         await player.queue.add(track);
+
+        // Track stats
+        await incrementUserRequests(message.author.id, message.guild!.id);
+        await incrementTrackPlayCount(
+          track.info.uri,
+          track.info.identifier || null,
+          track.info.title,
+          track.info.author || null,
+          message.guild!.id
+        );
 
         if (!player.playing) {
           await player.play();

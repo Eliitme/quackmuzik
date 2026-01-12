@@ -8,6 +8,8 @@ import {
   getGuildLocale,
   getGuildDjRole,
   getGuildDjAudioSettings,
+  incrementTrackPlayCount,
+  updateUserListeningTime,
 } from '../utils/database';
 import { clearVoteSkip } from '../utils/voteSkip';
 import { createEmbed } from '../utils/embed';
@@ -169,6 +171,56 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
           error,
         });
       });
+
+      // Track play count
+      await incrementTrackPlayCount(
+        track.info.uri,
+        track.info.identifier || null,
+        track.info.title,
+        track.info.author || null,
+        player.guildId
+      ).catch((error) => {
+        logger.error('Failed to increment track play count', {
+          guildId: player.guildId,
+          error,
+        });
+      });
+
+      // Track listening time for all users in voice channel
+      try {
+        const guild = client.guilds.cache.get(player.guildId);
+        if (guild && player.voiceChannelId) {
+          const voiceChannel = guild.channels.cache.get(player.voiceChannelId);
+          if (voiceChannel && 'members' in voiceChannel) {
+            const members = (voiceChannel as any).members;
+            const trackDurationMinutes = Math.floor((track.info.duration || 0) / 60000); // Convert ms to minutes
+
+            if (trackDurationMinutes > 0) {
+              // Update listening time for all non-bot members in voice channel
+              for (const member of members.values()) {
+                if (!member.user.bot) {
+                  await updateUserListeningTime(
+                    member.id,
+                    player.guildId,
+                    trackDurationMinutes
+                  ).catch((error) => {
+                    logger.error('Failed to update listening time', {
+                      userId: member.id,
+                      guildId: player.guildId,
+                      error,
+                    });
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Error tracking listening time', {
+          guildId: player.guildId,
+          error,
+        });
+      }
     }
 
     // Tự động destroy player khi hết nhạc (trừ khi 24/7 mode được bật)

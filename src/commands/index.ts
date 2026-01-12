@@ -10,6 +10,8 @@ import { queueCommand } from './music/queue';
 import { nowPlayingCommand } from './music/nowplaying';
 import { speakCommand } from './music/speak';
 import { playlistCommand } from './music/playlist';
+import { leaderboardCommand } from './music/leaderboard';
+import { rankCommand } from './music/rank';
 
 // Admin commands
 import { helpCommand } from './admin/help';
@@ -40,6 +42,8 @@ const commandList = [
   seekCommand,
   speakCommand,
   playlistCommand,
+  leaderboardCommand,
+  rankCommand,
   prefixCommand,
   localeCommand,
   termsCommand,
