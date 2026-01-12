@@ -1,6 +1,6 @@
 import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
-import { getGuildLocale, getGuildDjRole } from '../../utils/database';
+import { getGuildLocale, getGuildDjRole, getGuild24_7Mode } from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import { createEmbed } from '../../utils/embed';
@@ -49,14 +49,26 @@ export const skipCommand: Command = {
     if (hasDjRole) {
       try {
         if (!hasNext) {
-          // If this is the last track, destroy player instead of skipping
+          // If this is the last track, check 24/7 mode before destroying
           clearVoteSkip(message.guild!.id, trackIdentifier);
-          await player.destroy();
-          await message.reply(
-            translate(locale, 'commands.skip.skipped_last', {
-              title: currentTrack.info.title,
-            })
-          );
+          const mode247 = await getGuild24_7Mode(message.guild!.id);
+          if (mode247) {
+            // 24/7 mode is on, just skip (player will stay)
+            await player.skip();
+            await message.reply(
+              translate(locale, 'commands.skip.skipped', {
+                title: currentTrack.info.title,
+              })
+            );
+          } else {
+            // 24/7 mode is off, destroy player
+            await player.destroy();
+            await message.reply(
+              translate(locale, 'commands.skip.skipped_last', {
+                title: currentTrack.info.title,
+              })
+            );
+          }
           return;
         }
 
@@ -104,15 +116,29 @@ export const skipCommand: Command = {
         clearVoteSkip(message.guild!.id, trackIdentifier);
 
         if (!hasNext) {
-          // If this is the last track, destroy player instead of skipping
-          await player.destroy();
-          await message.reply(
-            translate(locale, 'commands.skip.vote_skipped_last', {
-              title: currentTrack.info.title,
-              votes: voteResult.votes,
-              required: voteResult.required,
-            })
-          );
+          // If this is the last track, check 24/7 mode before destroying
+          const mode247 = await getGuild24_7Mode(message.guild!.id);
+          if (mode247) {
+            // 24/7 mode is on, just skip (player will stay)
+            await player.skip();
+            await message.reply(
+              translate(locale, 'commands.skip.vote_skipped', {
+                title: currentTrack.info.title,
+                votes: voteResult.votes,
+                required: voteResult.required,
+              })
+            );
+          } else {
+            // 24/7 mode is off, destroy player
+            await player.destroy();
+            await message.reply(
+              translate(locale, 'commands.skip.vote_skipped_last', {
+                title: currentTrack.info.title,
+                votes: voteResult.votes,
+                required: voteResult.required,
+              })
+            );
+          }
           return;
         }
 

@@ -211,6 +211,28 @@
       "already_set": "❌ This server is already using this language!",
       "error": "❌ An error occurred while updating language!"
     },
+    "247mode": {
+      "name": "247mode",
+      "description": "View or toggle 24/7 mode (bot stays in voice channel even when queue is empty)",
+      "usage": "247mode [on|off]",
+      "current_title": "🕐 24/7 Mode Configuration",
+      "current_description": "24/7 mode allows the bot to stay in the voice channel even when the queue is empty.",
+      "status": "📊 Current Status",
+      "enabled": "✅ **Enabled** - Bot will stay in voice channel when queue is empty",
+      "disabled": "❌ **Disabled** - Bot will leave voice channel when queue is empty",
+      "enabled_info": "💡 When Enabled",
+      "enabled_description": "The bot will remain in the voice channel even after all tracks finish playing. This is useful for radio stations or continuous music playback.",
+      "disabled_info": "💡 When Disabled",
+      "disabled_description": "The bot will automatically leave the voice channel when the queue becomes empty. This is the default behavior.",
+      "how_to_toggle": "💡 How to Toggle",
+      "toggle_instruction": "Use `{prefix}247mode on` to enable 24/7 mode\nUse `{prefix}247mode off` to disable 24/7 mode",
+      "enabled_title": "✅ 24/7 Mode Enabled",
+      "enabled_message": "The bot will now stay in the voice channel even when the queue is empty.",
+      "disabled_title": "❌ 24/7 Mode Disabled",
+      "disabled_message": "The bot will automatically leave the voice channel when the queue becomes empty.",
+      "invalid_value": "❌ Invalid value! Use `on` or `off` to toggle 24/7 mode.",
+      "error": "❌ An error occurred while updating 24/7 mode!"
+    },
     "djrole": {
       "name": "djrole",
       "description": "View or set DJ role for vote skip bypass",

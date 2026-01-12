@@ -88,6 +88,21 @@ export async function ensureSchema(): Promise<void> {
       END $$;
     `);
 
+    // Add mode_24_7 column to existing guild_settings table if it doesn't exist
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'guild_settings'
+          AND column_name = 'mode_24_7'
+        ) THEN
+          ALTER TABLE guild_settings
+          ADD COLUMN mode_24_7 BOOLEAN DEFAULT false;
+        END IF;
+      END $$;
+    `);
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS play_history (
         id SERIAL PRIMARY KEY,
@@ -921,6 +936,55 @@ export async function resetGuildDjRole(guildId: string): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error('Error resetting guild DJ role', { guildId, error });
+    throw error;
+  }
+}
+
+/**
+ * Get 24/7 mode status for a guild
+ */
+export async function getGuild24_7Mode(guildId: string | null): Promise<boolean> {
+  if (!guildId) {
+    return false;
+  }
+
+  const db = initDatabase();
+
+  try {
+    const result = await db.query('SELECT mode_24_7 FROM guild_settings WHERE guild_id = $1', [
+      guildId,
+    ]);
+
+    if (result.rows.length > 0 && result.rows[0].mode_24_7 !== null) {
+      return result.rows[0].mode_24_7 === true;
+    }
+
+    return false; // Default: 24/7 mode is off
+  } catch (error) {
+    logger.error('Error getting guild 24/7 mode', { guildId, error });
+    return false;
+  }
+}
+
+/**
+ * Set 24/7 mode for a guild
+ */
+export async function setGuild24_7Mode(guildId: string, enabled: boolean): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `INSERT INTO guild_settings (guild_id, mode_24_7, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (guild_id)
+       DO UPDATE SET mode_24_7 = $2, updated_at = CURRENT_TIMESTAMP`,
+      [guildId, enabled]
+    );
+
+    logger.info('Guild 24/7 mode updated', { guildId, enabled });
+    return true;
+  } catch (error) {
+    logger.error('Error setting guild 24/7 mode', { guildId, enabled, error });
     throw error;
   }
 }

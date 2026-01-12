@@ -211,6 +211,28 @@
       "already_set": "❌ Server này đã sử dụng ngôn ngữ này rồi!",
       "error": "❌ Có lỗi xảy ra khi cập nhật ngôn ngữ!"
     },
+    "247mode": {
+      "name": "247mode",
+      "description": "Xem hoặc bật/tắt chế độ 24/7 (bot sẽ ở lại voice channel ngay cả khi queue trống)",
+      "usage": "247mode [on|off]",
+      "current_title": "🕐 Cấu hình Chế độ 24/7",
+      "current_description": "Chế độ 24/7 cho phép bot ở lại voice channel ngay cả khi queue trống.",
+      "status": "📊 Trạng thái hiện tại",
+      "enabled": "✅ **Đã bật** - Bot sẽ ở lại voice channel khi queue trống",
+      "disabled": "❌ **Đã tắt** - Bot sẽ rời voice channel khi queue trống",
+      "enabled_info": "💡 Khi bật",
+      "enabled_description": "Bot sẽ ở lại voice channel ngay cả sau khi tất cả bài hát phát xong. Hữu ích cho radio hoặc phát nhạc liên tục.",
+      "disabled_info": "💡 Khi tắt",
+      "disabled_description": "Bot sẽ tự động rời voice channel khi queue trống. Đây là hành vi mặc định.",
+      "how_to_toggle": "💡 Cách bật/tắt",
+      "toggle_instruction": "Sử dụng `{prefix}247mode on` để bật chế độ 24/7\nSử dụng `{prefix}247mode off` để tắt chế độ 24/7",
+      "enabled_title": "✅ Đã bật Chế độ 24/7",
+      "enabled_message": "Bot sẽ ở lại voice channel ngay cả khi queue trống.",
+      "disabled_title": "❌ Đã tắt Chế độ 24/7",
+      "disabled_message": "Bot sẽ tự động rời voice channel khi queue trống.",
+      "invalid_value": "❌ Giá trị không hợp lệ! Sử dụng `on` hoặc `off` để bật/tắt chế độ 24/7.",
+      "error": "❌ Có lỗi xảy ra khi cập nhật chế độ 24/7!"
+    },
     "djrole": {
       "name": "djrole",
       "description": "Xem hoặc đặt role DJ để bỏ qua vote skip",

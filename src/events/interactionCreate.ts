@@ -1,7 +1,7 @@
 import { Client, Interaction, ButtonInteraction, VoiceChannel } from 'discord.js';
 import { LavalinkManager } from 'lavalink-client';
 import { logger } from '../utils/logger';
-import { getGuildLocale, getGuildDjRole } from '../utils/database';
+import { getGuildLocale, getGuildDjRole, getGuild24_7Mode } from '../utils/database';
 import { translate, type Locale } from '../utils/i18n';
 import { addVoteSkip, clearVoteSkip, getVoteSkipCount } from '../utils/voteSkip';
 
@@ -140,15 +140,30 @@ export function registerInteractionCreateEvent(
           if (hasDjRole) {
             if (!hasNext) {
               clearVoteSkip(buttonInteraction.guild.id, trackIdentifier);
-              await player.destroy();
-              await buttonInteraction
-                .followUp({
-                  content: translate(locale, 'commands.skip.skipped_last', {
-                    title: currentTrack.info.title,
-                  }),
-                  ephemeral: true,
-                })
-                .catch(() => {});
+              const mode247 = await getGuild24_7Mode(buttonInteraction.guild.id);
+              if (mode247) {
+                // 24/7 mode is on, just skip (player will stay)
+                await player.skip();
+                await buttonInteraction
+                  .followUp({
+                    content: translate(locale, 'commands.skip.skipped', {
+                      title: currentTrack.info.title,
+                    }),
+                    ephemeral: true,
+                  })
+                  .catch(() => {});
+              } else {
+                // 24/7 mode is off, destroy player
+                await player.destroy();
+                await buttonInteraction
+                  .followUp({
+                    content: translate(locale, 'commands.skip.skipped_last', {
+                      title: currentTrack.info.title,
+                    }),
+                    ephemeral: true,
+                  })
+                  .catch(() => {});
+              }
             } else {
               clearVoteSkip(buttonInteraction.guild.id, trackIdentifier);
               await player.skip();
@@ -191,17 +206,34 @@ export function registerInteractionCreateEvent(
               clearVoteSkip(buttonInteraction.guild.id, trackIdentifier);
 
               if (!hasNext) {
-                await player.destroy();
-                await buttonInteraction
-                  .followUp({
-                    content: translate(locale, 'commands.skip.vote_skipped_last', {
-                      title: currentTrack.info.title,
-                      votes: voteResult.votes,
-                      required: voteResult.required,
-                    }),
-                    ephemeral: true,
-                  })
-                  .catch(() => {});
+                const mode247 = await getGuild24_7Mode(buttonInteraction.guild.id);
+                if (mode247) {
+                  // 24/7 mode is on, just skip (player will stay)
+                  await player.skip();
+                  await buttonInteraction
+                    .followUp({
+                      content: translate(locale, 'commands.skip.vote_skipped', {
+                        title: currentTrack.info.title,
+                        votes: voteResult.votes,
+                        required: voteResult.required,
+                      }),
+                      ephemeral: true,
+                    })
+                    .catch(() => {});
+                } else {
+                  // 24/7 mode is off, destroy player
+                  await player.destroy();
+                  await buttonInteraction
+                    .followUp({
+                      content: translate(locale, 'commands.skip.vote_skipped_last', {
+                        title: currentTrack.info.title,
+                        votes: voteResult.votes,
+                        required: voteResult.required,
+                      }),
+                      ephemeral: true,
+                    })
+                    .catch(() => {});
+                }
               } else {
                 await player.skip();
                 await buttonInteraction

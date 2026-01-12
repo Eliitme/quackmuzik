@@ -1,7 +1,7 @@
 import { Client } from 'discord.js';
 import { LavalinkManager } from 'lavalink-client';
 import { logger } from '../utils/logger';
-import { savePlayHistory } from '../utils/database';
+import { savePlayHistory, getGuild24_7Mode } from '../utils/database';
 import { clearVoteSkip } from '../utils/voteSkip';
 
 /**
@@ -63,10 +63,28 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
       });
     }
 
-    // Tự động destroy player khi hết nhạc (không lưu playlist)
+    // Tự động destroy player khi hết nhạc (trừ khi 24/7 mode được bật)
     if (player.queue.tracks.length === 0) {
-      logger.info('Queue empty, destroying player', { guildId: player.guildId });
-      player.destroy();
+      // Check 24/7 mode asynchronously
+      getGuild24_7Mode(player.guildId)
+        .then((mode247) => {
+          if (mode247) {
+            logger.info('Queue empty, but 24/7 mode is enabled, keeping player alive', {
+              guildId: player.guildId,
+            });
+          } else {
+            logger.info('Queue empty, destroying player', { guildId: player.guildId });
+            player.destroy();
+          }
+        })
+        .catch((error) => {
+          logger.error('Error checking 24/7 mode when queue empty', {
+            guildId: player.guildId,
+            error,
+          });
+          // Default to destroying if error
+          player.destroy();
+        });
     }
   });
 
@@ -104,8 +122,31 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
       });
       player.skip();
     } else {
-      logger.info('No more tracks after error, destroying player', { guildId: player.guildId });
-      player.destroy();
+      // Check 24/7 mode asynchronously
+      getGuild24_7Mode(player.guildId)
+        .then((mode247) => {
+          if (mode247) {
+            logger.info(
+              'No more tracks after error, but 24/7 mode is enabled, keeping player alive',
+              {
+                guildId: player.guildId,
+              }
+            );
+          } else {
+            logger.info('No more tracks after error, destroying player', {
+              guildId: player.guildId,
+            });
+            player.destroy();
+          }
+        })
+        .catch((error) => {
+          logger.error('Error checking 24/7 mode after track error', {
+            guildId: player.guildId,
+            error,
+          });
+          // Default to destroying if error
+          player.destroy();
+        });
     }
   });
 
