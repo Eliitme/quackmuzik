@@ -13,6 +13,7 @@ import {
   addTrackToPlaylist,
   getPlaylistTracks,
   removeTrackFromPlaylist,
+  updateUserPlaylistCount,
 } from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
 import { createEmbed } from '../../utils/embed';
@@ -96,6 +97,8 @@ async function handleCreate(
 
   try {
     const playlist = await createPlaylist(userId, guildId, name);
+    // Update playlist count stats
+    await updateUserPlaylistCount(userId, guildId);
     await message.reply(
       translate(locale, 'commands.playlist.create.created', { name: playlist.name })
     );
@@ -445,6 +448,8 @@ async function handleDelete(
     return;
   }
 
+  // Update playlist count stats
+  await updateUserPlaylistCount(userId, guildId);
   await message.reply(
     translate(locale, 'commands.playlist.delete.deleted', { name: playlist.name })
   );
