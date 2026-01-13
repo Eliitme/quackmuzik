@@ -1448,12 +1448,16 @@ export async function hasUserLikedTrack(
 
 /**
  * Like a track
+ * @param trackTitle - Track title (required if track doesn't exist in track_stats)
+ * @param trackAuthor - Track author (optional)
  */
 export async function likeTrack(
   userId: string,
   trackUri: string,
   trackIdentifier: string | null,
-  guildId: string | null
+  guildId: string | null,
+  trackTitle?: string,
+  trackAuthor?: string | null
 ): Promise<boolean> {
   const db = initDatabase();
 
@@ -1485,16 +1489,41 @@ export async function likeTrack(
     );
 
     // Increment track like_count
-    // First, get track info from track_stats or use provided info
-    await db.query(
-      `INSERT INTO track_stats (track_uri, track_identifier, guild_id, like_count, updated_at)
-       VALUES ($1, $2, $3, 1, CURRENT_TIMESTAMP)
-       ON CONFLICT (track_uri, guild_id)
-       DO UPDATE SET
-         like_count = track_stats.like_count + 1,
-         updated_at = CURRENT_TIMESTAMP`,
-      [trackUri, trackIdentifier, guildId]
+    // Check if track exists in track_stats first
+    const existingTrack = await db.query(
+      `SELECT track_title, track_author FROM track_stats
+       WHERE track_uri = $1 AND guild_id IS NOT DISTINCT FROM $2`,
+      [trackUri, guildId]
     );
+
+    if (existingTrack.rows.length > 0) {
+      // Track exists, just update like_count
+      await db.query(
+        `UPDATE track_stats
+         SET like_count = COALESCE(like_count, 0) + 1,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE track_uri = $1 AND guild_id IS NOT DISTINCT FROM $2`,
+        [trackUri, guildId]
+      );
+    } else {
+      // Track doesn't exist, need track_title (required NOT NULL)
+      // Use provided trackTitle or fallback to "Unknown"
+      const finalTrackTitle = trackTitle || 'Unknown Track';
+      const finalTrackAuthor = trackAuthor || null;
+
+      await db.query(
+        `INSERT INTO track_stats (
+          track_uri, track_identifier, track_title, track_author, guild_id,
+          like_count, updated_at
+        )
+         VALUES ($1, $2, $3, $4, $5, 1, CURRENT_TIMESTAMP)
+         ON CONFLICT (track_uri, guild_id)
+         DO UPDATE SET
+           like_count = COALESCE(track_stats.like_count, 0) + 1,
+           updated_at = CURRENT_TIMESTAMP`,
+        [trackUri, trackIdentifier, finalTrackTitle, finalTrackAuthor, guildId]
+      );
+    }
 
     logger.info('Track liked', { userId, trackUri, guildId });
     return true;

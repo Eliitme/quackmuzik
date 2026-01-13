@@ -421,7 +421,14 @@ export function registerInteractionCreateEvent(
               }
             } else {
               // Like
-              const success = await likeTrack(userId, trackUri, trackIdentifier, guildId);
+              const success = await likeTrack(
+                userId,
+                trackUri,
+                trackIdentifier,
+                guildId,
+                currentTrack.info.title,
+                currentTrack.info.author || null
+              );
               if (success) {
                 const likes = await getTrackLikes(trackUri, guildId);
                 await buttonInteraction
