@@ -154,6 +154,26 @@
       "seeked": "⏩ Seeked to: **{time}** / {duration}\n🎵 {title}",
       "error": "❌ An error occurred while seeking!\n💡 Make sure the time format is correct: `1:30` or `90`"
     },
+    "speed": {
+      "name": "speed",
+      "description": "Adjust playback speed for the current track",
+      "usage": "speed <0.25-2.0|reset>",
+      "no_voice": "❌ You must be in a voice channel to use this command!",
+      "not_playing": "❌ No song is currently playing!",
+      "same_voice_channel": "❌ You must be in the same voice channel as the bot!",
+      "filters_not_supported": "❌ This player does not support speed adjustment!",
+      "current_title": "⚡ Current Playback Speed",
+      "current_description": "Current speed: **{speed}%** ({speedValue}x)\n\n💡 Use `{prefix}speed <value>` to change speed (0.25-2.0)\nUse `{prefix}speed reset` to reset to normal speed",
+      "how_to_use": "💡 How to Use",
+      "usage_examples": "• `{prefix}speed 1.5` - Set speed to 1.5x (150%)\n• `{prefix}speed 0.75` - Set speed to 0.75x (75%)\n• `{prefix}speed reset` - Reset to normal speed (1.0x)\n\n**Range:** 0.25x (25%) to 2.0x (200%)",
+      "invalid_value": "❌ Invalid speed value! Please enter a number between 0.25 and 2.0, or use `reset`.\nExample: `{prefix}speed 1.5`",
+      "out_of_range": "❌ Speed must be between 0.25x (25%) and 2.0x (200%)!",
+      "set": "⚡ Playback speed set to **{speed}%** ({speedValue}x) for this session\n🎵 {title}",
+      "reset": "⚡ Playback speed reset to normal (100% / 1.0x) for this session\n🎵 {title}",
+      "already_reset": "✅ Playback speed is already at normal (100% / 1.0x)",
+      "session_active": "Speed setting is active for all tracks in this session",
+      "error": "❌ An error occurred while adjusting playback speed!"
+    },
     "speak": {
       "name": "speak",
       "description": "Play text-to-speech",
@@ -259,6 +279,30 @@
       "invalid_value": "❌ Invalid value! Use `on` or `off` to toggle 24/7 mode.",
       "error": "❌ An error occurred while updating 24/7 mode!"
     },
+    "autoplay": {
+      "name": "autoplay",
+      "description": "View or toggle autoplay mode (AI recommendation when queue ends)",
+      "usage": "autoplay [on|off]",
+      "current_title": "🤖 Autoplay Mode Configuration",
+      "current_description": "Autoplay mode automatically plays recommended songs when the queue ends, using AI recommendations based on your listening history.",
+      "status": "📊 Current Status",
+      "enabled": "✅ **Enabled** - Bot will automatically play recommended songs when queue ends",
+      "disabled": "❌ **Disabled** - Bot will stop playing when queue ends",
+      "enabled_info": "💡 When Enabled",
+      "enabled_description": "When the queue ends, the bot will automatically search for and play similar songs based on the last played track, your server's play history, and most popular tracks. This creates a continuous music experience.",
+      "disabled_info": "💡 When Disabled",
+      "disabled_description": "When the queue ends, the bot will stop playing. This is the default behavior.",
+      "how_to_toggle": "💡 How to Toggle",
+      "toggle_instruction": "Use `{prefix}autoplay on` to enable autoplay mode\nUse `{prefix}autoplay off` to disable autoplay mode",
+      "enabled_title": "✅ Autoplay Mode Enabled",
+      "enabled_message": "The bot will now automatically play recommended songs when the queue ends.",
+      "disabled_title": "❌ Autoplay Mode Disabled",
+      "disabled_message": "The bot will stop playing when the queue ends.",
+      "invalid_value": "❌ Invalid value! Use `on` or `off` to toggle autoplay mode.",
+      "error": "❌ An error occurred while updating autoplay mode!",
+      "recommendation_playing": "🤖 **Autoplay:** Playing recommended song",
+      "recommendation_failed": "❌ Failed to find recommended song. Autoplay stopped."
+    },
     "djconfig": {
       "name": "djconfig",
       "description": "Configure audio filters and effects for DJ role",
@@ -279,6 +323,7 @@
       "disabled_message": "**{filter}** filter has been disabled.",
       "invalid_value": "❌ Invalid value! Use `on` or `off` to toggle filters.",
       "invalid_filter": "❌ Invalid filter! Use `{prefix}djconfig` to see available filters.",
+      "no_permission": "❌ You need **Manage Server** permission to use this command!",
       "error": "❌ An error occurred while updating DJ audio configuration!"
     },
     "djrole": {
@@ -442,6 +487,12 @@
         "unshared": "✅ Playlist **{name}** is now private",
         "error": "❌ An error occurred while updating share status!"
       }
+    }
+  },
+  "events": {
+    "track_error": {
+      "retrying": "⚠️ Error playing: **{title}**\n🔄 Retrying... (Attempt {attempt}/{max})",
+      "failed": "❌ Error playing: **{title}**\n`{error}`\n💡 Trying next track..."
     }
   },
   "common": {

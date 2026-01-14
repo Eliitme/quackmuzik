@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import {
   savePlayHistory,
   getGuild24_7Mode,
+  getGuildAutoplay,
   getGuildAnnounceTrack,
   getGuildLocale,
   getGuildDjRole,
@@ -19,6 +20,11 @@ import { createEmbed } from '../utils/embed';
 import { translate, type Locale } from '../utils/i18n';
 import { formatTime } from '../utils/formatTime';
 import { applyDjAudioFilters } from '../utils/audioFilters';
+import { triggerAutoplay } from '../utils/autoplay';
+import { getGuildSpeed, onPlayerDestroy } from '../utils/speedSession';
+
+// Track retry count for each guild (guildId -> retryCount)
+const trackRetryCount = new Map<string, number>();
 
 /**
  * Register all Lavalink event handlers
@@ -33,6 +39,9 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
     logger.info('Player destroyed', { guildId: player.guildId, reason: reason || 'unknown' });
     // Clear all vote skip data for this guild
     clearVoteSkip(player.guildId);
+
+    // Clear speed session setting
+    onPlayerDestroy(player.guildId);
 
     // End all active listening sessions in the voice channel
     if (player.voiceChannelId) {
@@ -54,6 +63,9 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
 
   lavalinkManager.on('trackStart', async (player, track) => {
     if (track) {
+      // Reset retry count when track starts successfully
+      trackRetryCount.set(player.guildId, 0);
+
       // Clear all vote skip data for this guild when new track starts
       clearVoteSkip(player.guildId);
 
@@ -89,6 +101,41 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
         }
       } catch (error) {
         logger.error('Error applying DJ filters on track start', {
+          guildId: player.guildId,
+          error,
+        });
+      }
+
+      // Apply speed setting for session if set
+      // This should be applied after DJ filters so it can override them
+      try {
+        const sessionSpeed = getGuildSpeed(player.guildId);
+        if (sessionSpeed !== null) {
+          const playerWithFilters = player as any;
+          if (playerWithFilters.filters) {
+            // Get current filters to preserve other filters (like equalizer, rotation, etc.)
+            const currentFilters = (playerWithFilters.filters as any)?.data || {};
+
+            // Apply or update timescale filter with session speed
+            // Speed setting overrides DJ filters' timescale completely
+            // We only change speed, keep pitch and rate at 1.0 (normal)
+            currentFilters.timescale = {
+              speed: sessionSpeed,
+              pitch: 1.0, // Always keep pitch at normal for speed setting
+              rate: 1.0, // Always keep rate at normal for speed setting
+            };
+
+            await playerWithFilters.filters.set(currentFilters);
+
+            logger.info('Applied session speed on track start', {
+              guildId: player.guildId,
+              speed: sessionSpeed,
+              title: track.info.title,
+            });
+          }
+        }
+      } catch (error) {
+        logger.error('Error applying session speed on track start', {
           guildId: player.guildId,
           error,
         });
@@ -374,12 +421,69 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
       }
     }
 
-    // Tự động destroy player khi hết nhạc (trừ khi 24/7 mode được bật)
+    // Tự động destroy player khi hết nhạc (trừ khi 24/7 mode được bật hoặc autoplay được bật)
     if (player.queue.tracks.length === 0) {
-      // Check 24/7 mode asynchronously
-      getGuild24_7Mode(player.guildId)
-        .then((mode247) => {
-          if (mode247) {
+      // Check autoplay and 24/7 mode asynchronously
+      Promise.all([
+        getGuildAutoplay(player.guildId),
+        getGuild24_7Mode(player.guildId),
+        getGuildLocale(player.guildId),
+      ])
+        .then(async ([autoplayEnabled, mode247, locale]) => {
+          if (autoplayEnabled && track) {
+            // Try to trigger autoplay
+            logger.info('Queue empty, autoplay enabled, searching for recommendation', {
+              guildId: player.guildId,
+            });
+
+            const success = await triggerAutoplay(player, track, locale as Locale);
+
+            if (success) {
+              // Notify in text channel if available
+              if (player.textChannelId) {
+                const channel = client.channels.cache.get(player.textChannelId);
+                if (channel && 'send' in channel) {
+                  try {
+                    await channel.send(
+                      translate(locale as Locale, 'commands.autoplay.recommendation_playing')
+                    );
+                  } catch (error) {
+                    logger.error('Error sending autoplay notification', {
+                      guildId: player.guildId,
+                      error,
+                    });
+                  }
+                }
+              }
+            } else {
+              // Autoplay failed, check 24/7 mode
+              if (mode247) {
+                logger.info('Autoplay failed, but 24/7 mode is enabled, keeping player alive', {
+                  guildId: player.guildId,
+                });
+              } else {
+                logger.info('Autoplay failed, destroying player', { guildId: player.guildId });
+                player.destroy();
+              }
+
+              // Notify in text channel if available
+              if (player.textChannelId) {
+                const channel = client.channels.cache.get(player.textChannelId);
+                if (channel && 'send' in channel) {
+                  try {
+                    await channel.send(
+                      translate(locale as Locale, 'commands.autoplay.recommendation_failed')
+                    );
+                  } catch (error) {
+                    logger.error('Error sending autoplay failure notification', {
+                      guildId: player.guildId,
+                      error,
+                    });
+                  }
+                }
+              }
+            }
+          } else if (mode247) {
             logger.info('Queue empty, but 24/7 mode is enabled, keeping player alive', {
               guildId: player.guildId,
             });
@@ -389,7 +493,7 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
           }
         })
         .catch((error) => {
-          logger.error('Error checking 24/7 mode when queue empty', {
+          logger.error('Error checking autoplay/24/7 mode when queue empty', {
             guildId: player.guildId,
             error,
           });
@@ -399,9 +503,13 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
     }
   });
 
-  lavalinkManager.on('trackError', (player, track, error) => {
+  lavalinkManager.on('trackError', async (player, track, error) => {
     const errorMsg = error.exception?.message || 'Unknown error';
     const errorSeverity = error.exception?.severity || 'unknown';
+
+    // Get current retry count for this guild
+    const currentRetryCount = trackRetryCount.get(player.guildId) || 0;
+    const maxRetries = 3;
 
     logger.error('Track error', {
       guildId: player.guildId,
@@ -409,55 +517,116 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
       uri: track?.info?.uri || 'Unknown',
       error: errorMsg,
       severity: errorSeverity,
+      retryCount: currentRetryCount,
+      maxRetries,
     });
 
-    // Notify user in text channel
-    const channel = client.channels.cache.get(player.textChannelId || '');
-    if (channel && 'send' in channel) {
-      channel
-        .send(
-          `❌ Lỗi khi phát: **${track?.info?.title || 'Unknown'}**\n` +
-            `\`${errorMsg}\`\n` +
-            `💡 Đang thử track tiếp theo...`
-        )
-        .catch((e) =>
-          logger.error('Send error message failed', { guildId: player.guildId, error: e })
-        );
-    }
+    // Get locale for error messages
+    const locale = (await getGuildLocale(player.guildId)) as Locale;
 
-    // Try next track if available
-    if (player.queue.tracks.length > 0) {
-      logger.info('Skipping to next track after error', {
+    // If retry count is less than max, retry playing
+    if (currentRetryCount < maxRetries) {
+      const newRetryCount = currentRetryCount + 1;
+      trackRetryCount.set(player.guildId, newRetryCount);
+
+      logger.info('Retrying track play', {
         guildId: player.guildId,
-        remaining: player.queue.tracks.length,
+        title: track?.info?.title || 'Unknown',
+        retryAttempt: newRetryCount,
+        maxRetries,
       });
-      player.skip();
-    } else {
-      // Check 24/7 mode asynchronously
-      getGuild24_7Mode(player.guildId)
-        .then((mode247) => {
-          if (mode247) {
-            logger.info(
-              'No more tracks after error, but 24/7 mode is enabled, keeping player alive',
-              {
-                guildId: player.guildId,
-              }
-            );
-          } else {
-            logger.info('No more tracks after error, destroying player', {
-              guildId: player.guildId,
-            });
-            player.destroy();
-          }
-        })
-        .catch((error) => {
-          logger.error('Error checking 24/7 mode after track error', {
-            guildId: player.guildId,
-            error,
-          });
-          // Default to destroying if error
-          player.destroy();
+
+      // Notify user about retry
+      const channel = client.channels.cache.get(player.textChannelId || '');
+      if (channel && 'send' in channel) {
+        channel
+          .send(
+            translate(locale, 'events.track_error.retrying', {
+              title: track?.info?.title || 'Unknown',
+              attempt: newRetryCount,
+              max: maxRetries,
+            })
+          )
+          .catch((e) =>
+            logger.error('Send retry message failed', { guildId: player.guildId, error: e })
+          );
+      }
+
+      // Wait a bit before retrying (500ms delay)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Retry playing the current track
+      try {
+        await player.play();
+      } catch (retryError) {
+        logger.error('Error during retry play', {
+          guildId: player.guildId,
+          retryAttempt: newRetryCount,
+          error: retryError,
         });
+        // If retry play fails, the error will be caught again by this handler
+        // and we'll increment retry count again or give up
+      }
+    } else {
+      // Max retries reached, show error and skip
+      logger.warn('Max retries reached, skipping track', {
+        guildId: player.guildId,
+        title: track?.info?.title || 'Unknown',
+        retryCount: currentRetryCount,
+      });
+
+      // Reset retry count
+      trackRetryCount.set(player.guildId, 0);
+
+      // Notify user in text channel
+      const channel = client.channels.cache.get(player.textChannelId || '');
+      if (channel && 'send' in channel) {
+        channel
+          .send(
+            translate(locale, 'events.track_error.failed', {
+              title: track?.info?.title || 'Unknown',
+              error: errorMsg,
+            })
+          )
+          .catch((e) =>
+            logger.error('Send error message failed', { guildId: player.guildId, error: e })
+          );
+      }
+
+      // Try next track if available
+      if (player.queue.tracks.length > 0) {
+        logger.info('Skipping to next track after max retries', {
+          guildId: player.guildId,
+          remaining: player.queue.tracks.length,
+        });
+        player.skip();
+      } else {
+        // Check 24/7 mode asynchronously
+        getGuild24_7Mode(player.guildId)
+          .then((mode247) => {
+            if (mode247) {
+              logger.info(
+                'No more tracks after error, but 24/7 mode is enabled, keeping player alive',
+                {
+                  guildId: player.guildId,
+                }
+              );
+            } else {
+              logger.info('No more tracks after error, destroying player', {
+                guildId: player.guildId,
+              });
+              player.destroy();
+            }
+          })
+          .catch((error) => {
+            logger.error('Error checking 24/7 mode after track error', {
+              guildId: player.guildId,
+              error,
+            });
+            // Default to destroying if error
+            player.destroy();
+          });
+      }
     }
   });
 
@@ -480,8 +649,89 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
     player.skip();
   });
 
-  lavalinkManager.on('queueEnd', (player) => {
+  lavalinkManager.on('queueEnd', async (player) => {
     logger.info('Queue ended', { guildId: player.guildId });
+
+    // Check autoplay and 24/7 mode when queue ends
+    try {
+      const [autoplayEnabled, mode247, locale] = await Promise.all([
+        getGuildAutoplay(player.guildId),
+        getGuild24_7Mode(player.guildId),
+        getGuildLocale(player.guildId),
+      ]);
+
+      // Get current track for autoplay recommendation
+      const currentTrack = player.queue.current;
+
+      if (autoplayEnabled && currentTrack) {
+        // Try to trigger autoplay
+        logger.info('Queue ended, autoplay enabled, searching for recommendation', {
+          guildId: player.guildId,
+        });
+
+        const success = await triggerAutoplay(player, currentTrack, locale as Locale);
+
+        if (success) {
+          // Notify in text channel if available
+          if (player.textChannelId) {
+            const channel = client.channels.cache.get(player.textChannelId);
+            if (channel && 'send' in channel) {
+              try {
+                await channel.send(
+                  translate(locale as Locale, 'commands.autoplay.recommendation_playing')
+                );
+              } catch (error) {
+                logger.error('Error sending autoplay notification', {
+                  guildId: player.guildId,
+                  error,
+                });
+              }
+            }
+          }
+        } else {
+          // Autoplay failed, check 24/7 mode
+          if (mode247) {
+            logger.info('Autoplay failed, but 24/7 mode is enabled, keeping player alive', {
+              guildId: player.guildId,
+            });
+          } else {
+            logger.info('Autoplay failed, destroying player', { guildId: player.guildId });
+            player.destroy();
+          }
+
+          // Notify in text channel if available
+          if (player.textChannelId) {
+            const channel = client.channels.cache.get(player.textChannelId);
+            if (channel && 'send' in channel) {
+              try {
+                await channel.send(
+                  translate(locale as Locale, 'commands.autoplay.recommendation_failed')
+                );
+              } catch (error) {
+                logger.error('Error sending autoplay failure notification', {
+                  guildId: player.guildId,
+                  error,
+                });
+              }
+            }
+          }
+        }
+      } else if (mode247) {
+        logger.info('Queue ended, but 24/7 mode is enabled, keeping player alive', {
+          guildId: player.guildId,
+        });
+      } else {
+        logger.info('Queue ended, destroying player', { guildId: player.guildId });
+        player.destroy();
+      }
+    } catch (error) {
+      logger.error('Error checking autoplay/24/7 mode when queue ended', {
+        guildId: player.guildId,
+        error,
+      });
+      // Default to destroying if error
+      player.destroy();
+    }
   });
 
   lavalinkManager.on('playerUpdate', (player) => {

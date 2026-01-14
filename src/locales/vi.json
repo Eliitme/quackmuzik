@@ -154,6 +154,26 @@
       "seeked": "⏩ Đã chuyển đến: **{time}** / {duration}\n🎵 {title}",
       "error": "❌ Có lỗi xảy ra khi seek!\n💡 Đảm bảo định dạng thời gian đúng: `1:30` hoặc `90`"
     },
+    "speed": {
+      "name": "speed",
+      "description": "Điều chỉnh tốc độ phát cho bài hát hiện tại",
+      "usage": "speed <0.25-2.0|reset>",
+      "no_voice": "❌ Bạn phải ở trong voice channel để sử dụng lệnh này!",
+      "not_playing": "❌ Không có bài hát nào đang phát!",
+      "same_voice_channel": "❌ Bạn phải ở trong cùng voice channel với bot!",
+      "filters_not_supported": "❌ Player này không hỗ trợ điều chỉnh tốc độ!",
+      "current_title": "⚡ Tốc độ Phát Hiện Tại",
+      "current_description": "Tốc độ hiện tại: **{speed}%** ({speedValue}x)\n\n💡 Sử dụng `{prefix}speed <giá trị>` để thay đổi tốc độ (0.25-2.0)\nSử dụng `{prefix}speed reset` để đặt lại tốc độ bình thường",
+      "how_to_use": "💡 Cách Sử Dụng",
+      "usage_examples": "• `{prefix}speed 1.5` - Đặt tốc độ 1.5x (150%)\n• `{prefix}speed 0.75` - Đặt tốc độ 0.75x (75%)\n• `{prefix}speed reset` - Đặt lại tốc độ bình thường (1.0x)\n\n**Phạm vi:** 0.25x (25%) đến 2.0x (200%)",
+      "invalid_value": "❌ Giá trị tốc độ không hợp lệ! Vui lòng nhập số từ 0.25 đến 2.0, hoặc sử dụng `reset`.\nVí dụ: `{prefix}speed 1.5`",
+      "out_of_range": "❌ Tốc độ phải nằm trong khoảng 0.25x (25%) đến 2.0x (200%)!",
+      "set": "⚡ Đã đặt tốc độ phát thành **{speed}%** ({speedValue}x) cho session này\n🎵 {title}",
+      "reset": "⚡ Đã đặt lại tốc độ phát về bình thường (100% / 1.0x) cho session này\n🎵 {title}",
+      "already_reset": "✅ Tốc độ phát đã ở mức bình thường (100% / 1.0x)",
+      "session_active": "Cài đặt tốc độ đang hoạt động cho tất cả các bài hát trong session này",
+      "error": "❌ Có lỗi xảy ra khi điều chỉnh tốc độ phát!"
+    },
     "speak": {
       "name": "speak",
       "description": "Phát text-to-speech",
@@ -259,6 +279,30 @@
       "invalid_value": "❌ Giá trị không hợp lệ! Sử dụng `on` hoặc `off` để bật/tắt chế độ 24/7.",
       "error": "❌ Có lỗi xảy ra khi cập nhật chế độ 24/7!"
     },
+    "autoplay": {
+      "name": "autoplay",
+      "description": "Xem hoặc bật/tắt chế độ autoplay (AI gợi ý khi queue kết thúc)",
+      "usage": "autoplay [on|off]",
+      "current_title": "🤖 Cấu hình Chế độ Autoplay",
+      "current_description": "Chế độ autoplay tự động phát các bài hát được gợi ý khi queue kết thúc, sử dụng AI dựa trên lịch sử nghe nhạc của bạn.",
+      "status": "📊 Trạng thái hiện tại",
+      "enabled": "✅ **Đã bật** - Bot sẽ tự động phát bài hát được gợi ý khi queue kết thúc",
+      "disabled": "❌ **Đã tắt** - Bot sẽ dừng phát khi queue kết thúc",
+      "enabled_info": "💡 Khi bật",
+      "enabled_description": "Khi queue kết thúc, bot sẽ tự động tìm kiếm và phát các bài hát tương tự dựa trên bài hát vừa phát, lịch sử phát của server và các bài hát phổ biến nhất. Tạo trải nghiệm nghe nhạc liên tục.",
+      "disabled_info": "💡 Khi tắt",
+      "disabled_description": "Khi queue kết thúc, bot sẽ dừng phát. Đây là hành vi mặc định.",
+      "how_to_toggle": "💡 Cách bật/tắt",
+      "toggle_instruction": "Sử dụng `{prefix}autoplay on` để bật chế độ autoplay\nSử dụng `{prefix}autoplay off` để tắt chế độ autoplay",
+      "enabled_title": "✅ Đã bật Chế độ Autoplay",
+      "enabled_message": "Bot sẽ tự động phát các bài hát được gợi ý khi queue kết thúc.",
+      "disabled_title": "❌ Đã tắt Chế độ Autoplay",
+      "disabled_message": "Bot sẽ dừng phát khi queue kết thúc.",
+      "invalid_value": "❌ Giá trị không hợp lệ! Sử dụng `on` hoặc `off` để bật/tắt chế độ autoplay.",
+      "error": "❌ Có lỗi xảy ra khi cập nhật chế độ autoplay!",
+      "recommendation_playing": "🤖 **Autoplay:** Đang phát bài hát được gợi ý",
+      "recommendation_failed": "❌ Không tìm thấy bài hát được gợi ý. Autoplay đã dừng."
+    },
     "djconfig": {
       "name": "djconfig",
       "description": "Cấu hình bộ lọc âm thanh và hiệu ứng cho role DJ",
@@ -279,6 +323,7 @@
       "disabled_message": "Filter **{filter}** đã được tắt.",
       "invalid_value": "❌ Giá trị không hợp lệ! Sử dụng `on` hoặc `off` để bật/tắt filters.",
       "invalid_filter": "❌ Filter không hợp lệ! Sử dụng `{prefix}djconfig` để xem các filters có sẵn.",
+      "no_permission": "❌ Bạn cần có quyền **Quản lý Server** để sử dụng lệnh này!",
       "error": "❌ Có lỗi xảy ra khi cập nhật cấu hình audio DJ!"
     },
     "djrole": {
@@ -442,6 +487,12 @@
         "unshared": "✅ Playlist **{name}** đã được ẩn khỏi công khai",
         "error": "❌ Có lỗi xảy ra khi cập nhật trạng thái chia sẻ!"
       }
+    }
+  },
+  "events": {
+    "track_error": {
+      "retrying": "⚠️ Lỗi khi phát: **{title}**\n🔄 Đang thử lại... (Lần {attempt}/{max})",
+      "failed": "❌ Lỗi khi phát: **{title}**\n`{error}`\n💡 Đang thử track tiếp theo..."
     }
   },
   "common": {

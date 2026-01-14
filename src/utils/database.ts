@@ -133,6 +133,21 @@ export async function ensureSchema(): Promise<void> {
       END $$;
     `);
 
+    // Add autoplay column to existing guild_settings table if it doesn't exist
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'guild_settings'
+          AND column_name = 'autoplay'
+        ) THEN
+          ALTER TABLE guild_settings
+          ADD COLUMN autoplay BOOLEAN DEFAULT false;
+        END IF;
+      END $$;
+    `);
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS play_history (
         id SERIAL PRIMARY KEY,
@@ -1143,6 +1158,55 @@ export async function setGuild24_7Mode(guildId: string, enabled: boolean): Promi
     return true;
   } catch (error) {
     logger.error('Error setting guild 24/7 mode', { guildId, enabled, error });
+    throw error;
+  }
+}
+
+/**
+ * Get autoplay mode status for a guild
+ */
+export async function getGuildAutoplay(guildId: string | null): Promise<boolean> {
+  if (!guildId) {
+    return false;
+  }
+
+  const db = initDatabase();
+
+  try {
+    const result = await db.query('SELECT autoplay FROM guild_settings WHERE guild_id = $1', [
+      guildId,
+    ]);
+
+    if (result.rows.length > 0 && result.rows[0].autoplay !== null) {
+      return result.rows[0].autoplay === true;
+    }
+
+    return false; // Default: autoplay is off
+  } catch (error) {
+    logger.error('Error getting guild autoplay', { guildId, error });
+    return false;
+  }
+}
+
+/**
+ * Set autoplay mode for a guild
+ */
+export async function setGuildAutoplay(guildId: string, enabled: boolean): Promise<boolean> {
+  const db = initDatabase();
+
+  try {
+    await db.query(
+      `INSERT INTO guild_settings (guild_id, autoplay, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (guild_id)
+       DO UPDATE SET autoplay = $2, updated_at = CURRENT_TIMESTAMP`,
+      [guildId, enabled]
+    );
+
+    logger.info('Guild autoplay updated', { guildId, enabled });
+    return true;
+  } catch (error) {
+    logger.error('Error setting guild autoplay', { guildId, enabled, error });
     throw error;
   }
 }

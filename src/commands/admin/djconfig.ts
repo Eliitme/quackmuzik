@@ -124,7 +124,17 @@ export const djconfigCommand: Command = {
 
     try {
       await setGuildDjAudioSettings(guildId, newSettings);
-      const filterDisplayName = translate(locale, `commands.djconfig.${filterKey}`);
+      // Map filterKey (camelCase) to locale key (snake_case)
+      const localeKeyMap: Record<keyof DjAudioSettings, string> = {
+        bassboost: 'bassboost',
+        nightcore: 'nightcore',
+        lofi: 'lofi',
+        vaporwave: 'vaporwave',
+        volumeNormalization: 'volume_normalization',
+        audio8d: 'audio8d',
+      };
+      const localeKey = localeKeyMap[filterKey];
+      const filterDisplayName = translate(locale, `commands.djconfig.${localeKey}`);
       const embed = createEmbed({
         title: enabled
           ? translate(locale, 'commands.djconfig.enabled_title')

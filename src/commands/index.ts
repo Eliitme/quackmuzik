@@ -5,6 +5,7 @@ import { playCommand } from './music/play';
 import { stopCommand } from './music/stop';
 import { skipCommand } from './music/skip';
 import { seekCommand } from './music/seek';
+import { speedCommand } from './music/speed';
 import { jumpCommand } from './music/jump';
 import { queueCommand } from './music/queue';
 import { nowPlayingCommand } from './music/nowplaying';
@@ -23,6 +24,7 @@ import { djroleCommand } from './admin/djrole';
 import { mode247Command } from './admin/247mode';
 import { announceCommand } from './admin/announce';
 import { djconfigCommand } from './admin/djconfig';
+import { autoplayCommand } from './admin/autoplay';
 
 // System commands
 // import { debugCommand } from './system/debug'; // OPTIONAL: Uncomment to enable debug command
@@ -41,6 +43,7 @@ const commandList = [
   skipCommand,
   jumpCommand,
   seekCommand,
+  speedCommand,
   speakCommand,
   playlistCommand,
   leaderboardCommand,
@@ -53,6 +56,7 @@ const commandList = [
   mode247Command,
   announceCommand,
   djconfigCommand,
+  autoplayCommand,
   guildsCommand,
   // debugCommand, // OPTIONAL: Uncomment to enable debug command
 ];
