@@ -1,8 +1,12 @@
-import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { translate } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
+import {
+  getCommandContext,
+  getAndValidateVoiceChannel,
+  getOrCreatePlayer,
+  ensurePlayerConnected,
+} from '../../utils/musicHelpers';
 
 export const speakCommand: Command = {
   name: 'speak',
@@ -13,13 +17,10 @@ export const speakCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
-    const member = message.member;
-    const voiceChannel = member?.voice.channel;
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
+    const voiceChannel = await getAndValidateVoiceChannel(message.member, locale, 'speak', message);
 
-    if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-      await message.reply(translate(locale, 'commands.speak.no_voice'));
+    if (!voiceChannel) {
       return;
     }
 
@@ -31,13 +32,12 @@ export const speakCommand: Command = {
 
     try {
       // Create or get player
-      const player = lavalinkManager.createPlayer({
-        guildId: message.guild!.id,
-        voiceChannelId: voiceChannel.id,
-        textChannelId: message.channel.id,
-        selfDeaf: true,
-        selfMute: false,
-      });
+      const player = getOrCreatePlayer(
+        lavalinkManager,
+        message.guild!.id,
+        voiceChannel.id,
+        message.channel.id
+      );
 
       // If bot is already in a different channel
       if (player.voiceChannelId && player.voiceChannelId !== voiceChannel.id) {
@@ -45,9 +45,7 @@ export const speakCommand: Command = {
         return;
       }
 
-      if (!player.connected) {
-        await player.connect();
-      }
+      await ensurePlayerConnected(player, message.guild!.id, voiceChannel.id);
 
       const loadingMsg = await message.reply(translate(locale, 'commands.speak.loading'));
 

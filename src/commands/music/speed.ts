@@ -1,10 +1,10 @@
-import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { translate } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import { createEmbed } from '../../utils/embed';
 import { setGuildSpeed, getGuildSpeed, clearGuildSpeed } from '../../utils/speedSession';
+import { applySpeedFilter, getCurrentSpeed } from '../../utils/audioFilters';
+import { getCommandContext, validateMusicCommand } from '../../utils/musicHelpers';
 
 export const speedCommand: Command = {
   name: 'speed',
@@ -15,43 +15,29 @@ export const speedCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
-    const member = message.member;
-    const voiceChannel = member?.voice.channel;
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
+    const validation = await validateMusicCommand(
+      message.member,
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'speed',
+      message,
+      true
+    );
 
-    if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-      await message.reply(translate(locale, 'commands.speed.no_voice'));
+    if (!validation) {
       return;
     }
 
-    const player = lavalinkManager.getPlayer(message.guild!.id);
-
-    if (!player || !player.queue.current) {
-      await message.reply(translate(locale, 'commands.speed.not_playing'));
-      return;
-    }
-
-    // Check if user is in the same voice channel
-    if (player.voiceChannelId !== voiceChannel.id) {
-      await message.reply(translate(locale, 'commands.speed.same_voice_channel'));
-      return;
-    }
-
-    // Check if player has filters API
-    const playerWithFilters = player as any;
-    if (!playerWithFilters.filters) {
-      await message.reply(translate(locale, 'commands.speed.filters_not_supported'));
-      return;
-    }
+    const { player } = validation;
 
     try {
       // If no args, show current speed
       if (!args.length) {
         // Check session speed setting first, then current filters
         const sessionSpeed = getGuildSpeed(message.guild!.id);
-        const currentFilters = (playerWithFilters.filters as any)?.data || {};
-        const currentSpeed = sessionSpeed ?? currentFilters.timescale?.speed ?? 1.0;
+        const currentSpeed = sessionSpeed ?? getCurrentSpeed(player);
 
         const embed = createEmbed({
           title: translate(locale, 'commands.speed.current_title'),
@@ -86,25 +72,16 @@ export const speedCommand: Command = {
         // Clear session speed setting
         clearGuildSpeed(message.guild!.id);
 
-        // Get current filters
-        const currentFilters = (playerWithFilters.filters as any)?.data || {};
-
-        // Remove timescale if it exists, or set to default
-        if (currentFilters.timescale) {
-          delete currentFilters.timescale;
-
-          // If no other filters, reset all
-          if (Object.keys(currentFilters).length === 0) {
-            await playerWithFilters.filters.reset();
-          } else {
-            // Keep other filters, just remove timescale
-            await playerWithFilters.filters.set(currentFilters);
-          }
+        // Remove speed filter
+        const success = await applySpeedFilter(player, null);
+        if (!success) {
+          await message.reply(translate(locale, 'commands.speed.filters_not_supported'));
+          return;
         }
 
         await message.reply(
           translate(locale, 'commands.speed.reset', {
-            title: player.queue.current.info.title,
+            title: player.queue.current!.info.title, // Already validated with requireCurrent: true
           })
         );
         return;
@@ -127,30 +104,25 @@ export const speedCommand: Command = {
       // Save speed setting for session
       setGuildSpeed(message.guild!.id, speed);
 
-      // Get current filters to preserve other filters
-      const currentFilters = (playerWithFilters.filters as any)?.data || {};
-
-      // Apply timescale filter with new speed
-      currentFilters.timescale = {
-        speed: speed,
-        pitch: 1.0, // Keep pitch at normal
-        rate: 1.0, // Keep rate at normal
-      };
-
-      await playerWithFilters.filters.set(currentFilters);
+      // Apply speed filter
+      const success = await applySpeedFilter(player, speed);
+      if (!success) {
+        await message.reply(translate(locale, 'commands.speed.filters_not_supported'));
+        return;
+      }
 
       logger.info('Speed adjusted for session', {
         guildId: message.guild!.id,
         userId: message.author.id,
         speed,
-        track: player.queue.current.info.title,
+        track: player.queue.current!.info.title, // Already validated with requireCurrent: true
       });
 
       await message.reply(
         translate(locale, 'commands.speed.set', {
           speed: (speed * 100).toFixed(0),
           speedValue: speed.toFixed(2),
-          title: player.queue.current.info.title,
+          title: player.queue.current!.info.title, // Already validated with requireCurrent: true
         })
       );
     } catch (error) {

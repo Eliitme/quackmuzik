@@ -2,8 +2,8 @@ import { User } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { createEmbedWithCustomFooter } from '../../utils/embed';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
-import { translate, getTranslations, type Locale } from '../../utils/i18n';
+import { translate, getTranslations } from '../../utils/i18n';
+import { getCommandContext, getAndValidatePlayer } from '../../utils/musicHelpers';
 
 export const queueCommand: Command = {
   name: 'queue',
@@ -14,14 +14,19 @@ export const queueCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null);
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
     const queueT = getTranslations(locale, 'commands.queue');
 
-    const player = lavalinkManager.getPlayer(message.guild!.id);
+    const player = await getAndValidatePlayer(
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'queue',
+      message,
+      false
+    );
 
     if (!player) {
-      await message.reply(translate(locale, 'commands.queue.empty'));
       return;
     }
 

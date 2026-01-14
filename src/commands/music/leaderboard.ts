@@ -1,13 +1,9 @@
 import { Command } from '../../types/Command';
-import {
-  getGuildLocale,
-  getTopRequesters,
-  getTopListeners,
-  getTopTracks,
-} from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { getTopRequesters, getTopListeners, getTopTracks } from '../../utils/database';
+import { translate } from '../../utils/i18n';
 import { createEmbed } from '../../utils/embed';
 import { formatTime } from '../../utils/formatTime';
+import { getCommandContext } from '../../utils/musicHelpers';
 
 export const leaderboardCommand: Command = {
   name: 'leaderboard',
@@ -18,7 +14,7 @@ export const leaderboardCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
+    const { locale } = await getCommandContext(message.guild?.id || null);
     const guildId = message.guild!.id;
 
     const type = args[0]?.toLowerCase() || 'dj';

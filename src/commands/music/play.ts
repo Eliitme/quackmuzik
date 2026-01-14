@@ -1,17 +1,20 @@
-import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { logger } from '../../utils/logger';
 import {
-  getGuildLocale,
-  getGuildPrefix,
   getGuildDjRole,
   getGuildDjAudioSettings,
   incrementUserRequests,
   incrementTrackPlayCount,
 } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { translate } from '../../utils/i18n';
 import { applyDjAudioFilters } from '../../utils/audioFilters';
+import {
+  getCommandContext,
+  getAndValidateVoiceChannel,
+  getOrCreatePlayer,
+  ensurePlayerConnected,
+} from '../../utils/musicHelpers';
 
 export const playCommand: Command = {
   name: 'play',
@@ -22,19 +25,16 @@ export const playCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
 
     if (!args.length) {
       await message.reply(translate(locale, 'commands.play.no_query', { prefix }));
       return;
     }
 
-    const member = message.member;
-    const voiceChannel = member?.voice.channel;
+    const voiceChannel = await getAndValidateVoiceChannel(message.member, locale, 'play', message);
 
-    if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-      await message.reply(translate(locale, 'commands.play.no_voice'));
+    if (!voiceChannel) {
       return;
     }
 
@@ -48,22 +48,15 @@ export const playCommand: Command = {
       });
 
       // Tạo hoặc lấy player
-      const player = lavalinkManager.createPlayer({
-        guildId: message.guild!.id,
-        voiceChannelId: voiceChannel.id,
-        textChannelId: message.channel.id,
-        selfDeaf: true,
-        selfMute: false,
-      });
+      const player = getOrCreatePlayer(
+        lavalinkManager,
+        message.guild!.id,
+        voiceChannel.id,
+        message.channel.id
+      );
 
       // Kết nối nếu chưa
-      if (!player.connected) {
-        logger.info('[PLAY] Connecting to voice channel', {
-          guildId: message.guild!.id,
-          voiceChannelId: voiceChannel.id,
-        });
-        await player.connect();
-      }
+      await ensurePlayerConnected(player, message.guild!.id, voiceChannel.id);
 
       // Kiểm tra xem có phải link hay không
       const isUrl = /^https?:\/\//.test(query);
@@ -124,7 +117,7 @@ export const playCommand: Command = {
 
         // Apply DJ audio filters if user has DJ role
         const djRoleId = await getGuildDjRole(message.guild!.id);
-        if (djRoleId && member?.roles.cache.has(djRoleId)) {
+        if (djRoleId && message.member?.roles.cache.has(djRoleId)) {
           const djSettings = await getGuildDjAudioSettings(message.guild!.id);
           await applyDjAudioFilters(player, djSettings);
         }
@@ -176,7 +169,7 @@ export const playCommand: Command = {
 
         // Apply DJ audio filters if user has DJ role
         const djRoleId = await getGuildDjRole(message.guild!.id);
-        if (djRoleId && member?.roles.cache.has(djRoleId)) {
+        if (djRoleId && message.member?.roles.cache.has(djRoleId)) {
           const djSettings = await getGuildDjAudioSettings(message.guild!.id);
           await applyDjAudioFilters(player, djSettings);
         }

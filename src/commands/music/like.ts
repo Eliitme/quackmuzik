@@ -1,15 +1,9 @@
-import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
-import {
-  getGuildLocale,
-  likeTrack,
-  unlikeTrack,
-  hasUserLikedTrack,
-  getTrackLikes,
-} from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { likeTrack, unlikeTrack, hasUserLikedTrack, getTrackLikes } from '../../utils/database';
+import { translate } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
 import { createEmbed } from '../../utils/embed';
+import { getCommandContext, validateMusicCommand } from '../../utils/musicHelpers';
 
 export const likeCommand: Command = {
   name: 'like',
@@ -20,29 +14,24 @@ export const likeCommand: Command = {
   guildOnly: true,
 
   async execute({ message, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const member = message.member;
-    const voiceChannel = member?.voice.channel;
+    const { locale } = await getCommandContext(message.guild?.id || null);
+    const validation = await validateMusicCommand(
+      message.member,
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'like',
+      message,
+      true
+    );
 
-    if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-      await message.reply(translate(locale, 'commands.like.no_voice'));
+    if (!validation) {
       return;
     }
 
-    const player = lavalinkManager.getPlayer(message.guild!.id);
+    const { player } = validation;
 
-    if (!player || !player.queue.current) {
-      await message.reply(translate(locale, 'commands.like.not_playing'));
-      return;
-    }
-
-    // Check if user is in the same voice channel
-    if (player.voiceChannelId !== voiceChannel.id) {
-      await message.reply(translate(locale, 'commands.like.same_voice_channel'));
-      return;
-    }
-
-    const currentTrack = player.queue.current;
+    const currentTrack = player.queue.current!; // Already validated with requireCurrent: true
     const trackUri = currentTrack.info.uri;
     const trackIdentifier = currentTrack.info.identifier || null;
     const guildId = message.guild!.id;

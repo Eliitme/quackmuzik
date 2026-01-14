@@ -1,9 +1,8 @@
-import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { translate } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
+import { getCommandContext, validateMusicCommand } from '../../utils/musicHelpers';
 
 export const seekCommand: Command = {
   name: 'seek',
@@ -14,28 +13,22 @@ export const seekCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
-    const member = message.member;
-    const voiceChannel = member?.voice.channel;
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
+    const validation = await validateMusicCommand(
+      message.member,
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'seek',
+      message,
+      true
+    );
 
-    if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-      await message.reply(translate(locale, 'commands.seek.no_voice'));
+    if (!validation) {
       return;
     }
 
-    const player = lavalinkManager.getPlayer(message.guild!.id);
-
-    if (!player || !player.queue.current) {
-      await message.reply(translate(locale, 'commands.seek.not_playing'));
-      return;
-    }
-
-    // Check if user is in the same voice channel
-    if (player.voiceChannelId !== voiceChannel.id) {
-      await message.reply(translate(locale, 'commands.seek.same_voice_channel'));
-      return;
-    }
+    const { player } = validation;
 
     if (!args.length) {
       await message.reply(translate(locale, 'commands.seek.no_time', { prefix }));
@@ -74,7 +67,7 @@ export const seekCommand: Command = {
         targetMs = seconds * 1000;
       }
 
-      const currentTrack = player.queue.current;
+      const currentTrack = player.queue.current!; // Already validated with requireCurrent: true
       const duration = currentTrack.info.duration;
 
       if (targetMs < 0) {

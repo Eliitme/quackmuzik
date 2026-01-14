@@ -2,10 +2,11 @@ import { User, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { createEmbedWithCustomFooter } from '../../utils/embed';
-import { getGuildLocale, hasUserLikedTrack, getTrackLikes } from '../../utils/database';
-import { translate, getTranslations, type Locale } from '../../utils/i18n';
+import { hasUserLikedTrack, getTrackLikes } from '../../utils/database';
+import { translate, getTranslations } from '../../utils/i18n';
 import { createSimpleSpectrum } from '../../utils/spectrum';
 import { logger } from '../../utils/logger';
+import { getCommandContext, getAndValidatePlayer } from '../../utils/musicHelpers';
 
 export const nowPlayingCommand: Command = {
   name: 'nowplaying',
@@ -16,17 +17,23 @@ export const nowPlayingCommand: Command = {
   guildOnly: true,
 
   async execute({ message, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
+    const { locale } = await getCommandContext(message.guild?.id || null);
     const npT = getTranslations(locale, 'commands.nowplaying');
 
-    const player = lavalinkManager.getPlayer(message.guild!.id);
+    const player = await getAndValidatePlayer(
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'nowplaying',
+      message,
+      true
+    );
 
-    if (!player || !player.queue.current) {
-      await message.reply(translate(locale, 'commands.nowplaying.not_playing'));
+    if (!player) {
       return;
     }
 
-    const track = player.queue.current;
+    const track = player.queue.current!; // Already validated with requireCurrent: true
     const position = player.position; // milliseconds
     const duration = track.info.duration; // milliseconds
 

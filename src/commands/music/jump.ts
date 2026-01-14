@@ -1,8 +1,7 @@
-import { VoiceChannel } from 'discord.js';
 import { Command } from '../../types/Command';
-import { getGuildLocale, getGuildPrefix } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { translate } from '../../utils/i18n';
 import { logger } from '../../utils/logger';
+import { getCommandContext, validateMusicCommand } from '../../utils/musicHelpers';
 
 export const jumpCommand: Command = {
   name: 'jump',
@@ -13,28 +12,22 @@ export const jumpCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
-    const member = message.member;
-    const voiceChannel = member?.voice.channel;
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
+    const validation = await validateMusicCommand(
+      message.member,
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'jump',
+      message,
+      false
+    );
 
-    if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-      await message.reply(translate(locale, 'commands.jump.no_voice'));
+    if (!validation) {
       return;
     }
 
-    const player = lavalinkManager.getPlayer(message.guild!.id);
-
-    if (!player) {
-      await message.reply(translate(locale, 'commands.jump.no_queue'));
-      return;
-    }
-
-    // Check if user is in the same voice channel
-    if (player.voiceChannelId !== voiceChannel.id) {
-      await message.reply(translate(locale, 'commands.jump.same_voice_channel'));
-      return;
-    }
+    const { player } = validation;
 
     if (!args.length) {
       await message.reply(translate(locale, 'commands.jump.no_position', { prefix }));

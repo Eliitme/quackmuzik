@@ -3,8 +3,6 @@ import { Command } from '../../types/Command';
 import { formatTime } from '../../utils/formatTime';
 import { logger } from '../../utils/logger';
 import {
-  getGuildLocale,
-  getGuildPrefix,
   createPlaylist,
   getUserPlaylists,
   getPlaylistByName,
@@ -17,6 +15,12 @@ import {
 } from '../../utils/database';
 import { translate, type Locale } from '../../utils/i18n';
 import { createEmbed } from '../../utils/embed';
+import {
+  getCommandContext,
+  getAndValidateVoiceChannel,
+  getOrCreatePlayer,
+  ensurePlayerConnected,
+} from '../../utils/musicHelpers';
 
 export const playlistCommand: Command = {
   name: 'playlist',
@@ -27,8 +31,7 @@ export const playlistCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const prefix = await getGuildPrefix(message.guild?.id || null, 'z!');
+    const { locale, prefix } = await getCommandContext(message.guild?.id || null);
     const userId = message.author.id;
     const guildId = message.guild?.id || null;
 
@@ -191,16 +194,14 @@ async function handleAdd(
     let player = lavalinkManager.getPlayer(message.guild!.id);
     if (!player) {
       // Create a player just for searching (won't connect to voice)
-      player = lavalinkManager.createPlayer({
-        guildId: message.guild!.id,
-        voiceChannelId:
-          message.member?.voice.channel?.id ||
-          message.guild!.voiceChannels.cache.first()?.id ||
-          '0',
-        textChannelId: message.channel.id,
-        selfDeaf: true,
-        selfMute: false,
-      });
+      const voiceChannelId =
+        message.member?.voice.channel?.id || message.guild!.voiceChannels.cache.first()?.id || '0';
+      player = getOrCreatePlayer(
+        lavalinkManager,
+        message.guild!.id,
+        voiceChannelId,
+        message.channel.id
+      );
     }
 
     const isUrl = /^https?:\/\//.test(query);
@@ -347,11 +348,14 @@ async function handlePlay(
     return;
   }
 
-  const member = message.member;
-  const voiceChannel = member?.voice.channel;
+  const voiceChannel = await getAndValidateVoiceChannel(
+    message.member,
+    locale,
+    'playlist.play',
+    message
+  );
 
-  if (!voiceChannel || !(voiceChannel instanceof VoiceChannel)) {
-    await message.reply(translate(locale, 'commands.playlist.play.no_voice'));
+  if (!voiceChannel) {
     return;
   }
 
@@ -359,17 +363,14 @@ async function handlePlay(
 
   try {
     // Create or get player
-    const player = lavalinkManager.createPlayer({
-      guildId: message.guild!.id,
-      voiceChannelId: voiceChannel.id,
-      textChannelId: message.channel.id,
-      selfDeaf: true,
-      selfMute: false,
-    });
+    const player = getOrCreatePlayer(
+      lavalinkManager,
+      message.guild!.id,
+      voiceChannel.id,
+      message.channel.id
+    );
 
-    if (!player.connected) {
-      await player.connect();
-    }
+    await ensurePlayerConnected(player, message.guild!.id, voiceChannel.id);
 
     // Load tracks from playlist
     let loadedCount = 0;

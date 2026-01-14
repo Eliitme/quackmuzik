@@ -19,7 +19,11 @@ import { clearVoteSkip } from '../utils/voteSkip';
 import { createEmbed } from '../utils/embed';
 import { translate, type Locale } from '../utils/i18n';
 import { formatTime } from '../utils/formatTime';
-import { applyDjAudioFilters } from '../utils/audioFilters';
+import {
+  applyDjAudioFilters,
+  playerSupportsFilters,
+  applySpeedFilter,
+} from '../utils/audioFilters';
 import { triggerAutoplay } from '../utils/autoplay';
 import { getGuildSpeed, onPlayerDestroy } from '../utils/speedSession';
 
@@ -111,28 +115,12 @@ export function registerLavalinkEvents(client: Client, lavalinkManager: Lavalink
       try {
         const sessionSpeed = getGuildSpeed(player.guildId);
         if (sessionSpeed !== null) {
-          const playerWithFilters = player as any;
-          if (playerWithFilters.filters) {
-            // Get current filters to preserve other filters (like equalizer, rotation, etc.)
-            const currentFilters = (playerWithFilters.filters as any)?.data || {};
-
-            // Apply or update timescale filter with session speed
-            // Speed setting overrides DJ filters' timescale completely
-            // We only change speed, keep pitch and rate at 1.0 (normal)
-            currentFilters.timescale = {
-              speed: sessionSpeed,
-              pitch: 1.0, // Always keep pitch at normal for speed setting
-              rate: 1.0, // Always keep rate at normal for speed setting
-            };
-
-            await playerWithFilters.filters.set(currentFilters);
-
-            logger.info('Applied session speed on track start', {
-              guildId: player.guildId,
-              speed: sessionSpeed,
-              title: track.info.title,
-            });
-          }
+          await applySpeedFilter(player, sessionSpeed);
+          logger.info('Applied session speed on track start', {
+            guildId: player.guildId,
+            speed: sessionSpeed,
+            title: track.info.title,
+          });
         }
       } catch (error) {
         logger.error('Error applying session speed on track start', {

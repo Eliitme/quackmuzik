@@ -1,7 +1,8 @@
 import { Command } from '../../types/Command';
-import { getGuildLocale, getUserStats, getUserRank } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { getUserStats, getUserRank } from '../../utils/database';
+import { translate } from '../../utils/i18n';
 import { createEmbed } from '../../utils/embed';
+import { getCommandContext } from '../../utils/musicHelpers';
 
 export const rankCommand: Command = {
   name: 'rank',
@@ -12,7 +13,7 @@ export const rankCommand: Command = {
   guildOnly: true,
 
   async execute({ message, args }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
+    const { locale } = await getCommandContext(message.guild?.id || null);
     const guildId = message.guild!.id;
 
     // Get target user (default: message author)

@@ -1,6 +1,6 @@
 import { Command } from '../../types/Command';
-import { getGuildLocale } from '../../utils/database';
-import { translate, type Locale } from '../../utils/i18n';
+import { translate } from '../../utils/i18n';
+import { getCommandContext, getAndValidatePlayer } from '../../utils/musicHelpers';
 
 export const stopCommand: Command = {
   name: 'stop',
@@ -11,11 +11,17 @@ export const stopCommand: Command = {
   guildOnly: true,
 
   async execute({ message, lavalinkManager }) {
-    const locale = (await getGuildLocale(message.guild?.id || null)) as Locale;
-    const player = lavalinkManager.getPlayer(message.guild!.id);
+    const { locale } = await getCommandContext(message.guild?.id || null);
+    const player = await getAndValidatePlayer(
+      lavalinkManager,
+      message.guild!.id,
+      locale,
+      'stop',
+      message,
+      false
+    );
 
     if (!player) {
-      await message.reply(translate(locale, 'commands.stop.not_playing'));
       return;
     }
 
